@@ -1,0 +1,152 @@
+---
+title: "assignment 2"
+output:
+  pdf_document: default
+  word_document: default
+  html_document: default
+date: "2023-10-08"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+options(repos = c(CRAN = "https://cran.rstudio.com"))
+```
+
+\#**Install and Load the dplyr Package**
+
+```{r}
+install.packages("dplyr")
+```
+
+```{r}
+library(dplyr)
+```
+
+#clear the environment
+
+```{r}
+rm(list = ls())
+```
+
+#load the dataset
+
+```{r}
+d<-read.csv("vdem_1984_2022_external.csv")
+```
+
+#1. code-book lookup
+
+#1) According to the vdem code-book, indicators related to education are "8.1.1 Education 15+ (E) (e_peaveduc)" and "8.1.2 Educational inequality, Gini (E) (e_peedgini)".
+
+#2) For "Education 15+ (E) (e_peaveduc)", datas are available from 1820-2021. And for "Educational inequality, Gini (E) (e_peedgini)", datas are available from 1850-2010. But in the dataset of "vdem_1984_2022_external.csv" we only have data from 1984. And we can know the countries and years in this dataset by running this code shown below.
+
+#Countries and years in the dataset
+
+```{r}
+d |> select(country_name, year) |> distinct()
+```
+
+#3). According to the code-book there are many sources, such as Clio-Infra (2018), 'Clio-Infra Project (Database)'.**URL:** <http://www.clio-infra.eu/> etc.
+
+#2. subset by columns
+
+#1) dataset with country, year and indicators of education quality
+
+```{r}
+d_edu<-d|>
+  select(country_name, year, e_peaveduc, e_peedgini)
+
+d_edu
+```
+
+#2) rename
+
+```{r}
+d_edu <-d_edu |>
+  rename("Years_of_education"="e_peaveduc", "Educational_inequality"="e_peedgini")
+
+d_edu
+```
+
+#3. Subset by rows
+
+#1) Want countries-years with the highest education level.
+
+```{r}
+d_edu|>
+  slice_max(order_by =Years_of_education, n=5)
+```
+
+#2) Want countries-years with greatest gini-coefficient
+
+```{r}
+d_edu|>
+  slice_max(order_by =Educational_inequality, n=5)
+```
+
+#4. summarize
+
+#1) check data availability:
+
+#number of data "Years_of_education" missing for each country
+
+```{r}
+d_edu|>
+  mutate(Years_of_education_missing=as.numeric(is.na(Years_of_education)), .after = Years_of_education)|>
+  group_by(country_name)|>
+  summarise(N_Years_of_education_missing=sum(Years_of_education_missing))
+```
+
+#number of data "Educational_inequality" missing for each country
+
+```{r}
+d_edu|>
+  mutate(Educational_inequality_missing=as.numeric(is.na(Educational_inequality)), .after = Educational_inequality)|>
+  group_by(country_name)|>
+  summarise(N_Educational_inequality_missing=sum(Educational_inequality_missing))
+```
+
+#number of data "Years_of_education" missing for each year
+
+```{r}
+d_edu|>
+  mutate(Years_of_education_missing=as.numeric(is.na(Years_of_education)), .after = Years_of_education)|>
+  group_by(year)|>
+  summarise(N_Years_of_education_missing=sum(Years_of_education_missing))
+```
+
+#number of data "Educational_inequality" missing for each year
+
+```{r}
+d_edu|>
+  mutate(Educational_inequality_missing=as.numeric(is.na(Educational_inequality)), .after = Educational_inequality)|>
+  group_by(year)|>
+  summarise(N_Educational_inequality_missing=sum(Educational_inequality_missing))
+```
+
+#2) 1) Average level of education quality 1984-2022
+
+```{r}
+d_edu|>
+  filter(year>=1984 & year<=2022)|>
+  group_by(country_name)|>
+  summarise(Years_of_education_average=mean(Years_of_education, na.rm = TRUE),
+            Educational_inequality_average=mean(Educational_inequality, na.rm = TRUE))
+```
+
+#2) 2) Change of education quality 1984-2022
+
+```{r}
+d_edu|>
+  filter(year>=1984 & year<=2022)|>
+  group_by(country_name)|>
+  summarise(
+    Years_of_education_growth_2022_1984 = last(Years_of_education) - first(Years_of_education),
+    Educational_inequality_decrease_2022_1984 = last(Educational_inequality) - first(Educational_inequality))|>
+  arrange(-Years_of_education_growth_2022_1984)
+```
+
+#3) Best: Botswana, worst: Tajikistan.

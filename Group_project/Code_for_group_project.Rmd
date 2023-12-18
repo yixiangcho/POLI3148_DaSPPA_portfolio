@@ -1,0 +1,870 @@
+---
+title: "Regression"
+author: "POLI3148 Group"
+date: "2023-12-01"
+output:
+  html_document:
+    df_print: paged
+editor_options: 
+  chunk_output_type: console
+---
+
+#Default
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+#Input
+
+##Libraries:
+
+```{r}
+library(tidyverse)
+library(readxl)
+library(ggplot2)
+library(dplyr)
+library(sf)
+sf_use_s2(FALSE)
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(ggthemes)
+library(viridis)
+```
+
+##Read in independent variables:
+
+```{r}
+Dem_index <- read.csv("data/vdem_1984_2022_index.csv")
+```
+
+##Read in dependent variables and ensure correct type for variables:
+
+```{r}
+Edu_as_of_G <- read_excel("data/Expenditure_on_Education_as_of_Total_Government_Expenditure.xlsx", col_types = c("guess", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric"))
+
+G_as_of_Y <- read_excel("data/Government_Expenditure_as_of_GDP.xlsx",  col_types = c("guess", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric"))
+```
+
+#Data Wrangling
+
+##Independent variable(s): Dem_index
+
+###Rename:
+
+```{r}
+Dem_index <-
+  Dem_index |>
+  rename(Electoral = v2x_polyarchy, Liberal = v2x_libdem, Participatory = v2x_partipdem, Deliberative = v2x_delibdem, Egalitarian = v2x_egaldem) |>
+  rename(Country = country_name, Year = year)
+```
+
+###Get necessary data:
+
+```{r}
+Dem_index_cleaned <-
+  Dem_index |>
+  select(Country, Year, Electoral, Liberal, Participatory, Deliberative, Egalitarian) |>
+  filter(Year > 2013, Year < 2020)
+```
+
+```{r}
+#For Map's sake:
+
+##Check:
+
+#check_Dem <-
+#  anti_join(Dem_Liberal, world_select, by = "name_long") |>
+#  arrange(name_long)
+
+#check_world <-
+#  anti_join(world, Dem_Liberal, by = "name_long")
+
+##Rename:
+
+Dem_index_cleaned$Country <- 
+  ifelse(Dem_index_cleaned$Country == "United States of America", "United States", Dem_index_cleaned$Country) 
+
+Dem_index_cleaned$Country <- 
+  ifelse(Dem_index_cleaned$Country == "United Kingdom", "Britain", Dem_index_cleaned$Country) 
+
+Dem_index_cleaned$Country <- 
+  ifelse(Dem_index_cleaned$Country == "South Korea", "Republic of Korea", Dem_index_cleaned$Country) 
+
+Dem_index_cleaned$Country <- 
+  ifelse(Dem_index_cleaned$Country == "Russia", "Russian Federation", Dem_index_cleaned$Country) 
+
+Dem_index_cleaned$Country <- 
+  ifelse(Dem_index_cleaned$Country == "North Korea", "Dem. Rep. Korea", Dem_index_cleaned$Country) 
+
+Dem_index_cleaned$Country <- 
+  ifelse(Dem_index_cleaned$Country == "Republic of the Congo", "Republic of Congo", Dem_index_cleaned$Country) 
+
+Dem_index_cleaned$Country <- 
+  ifelse(Dem_index_cleaned$Country == "Palestine/Gaza", "Gaza",  Dem_index_cleaned$Country) 
+
+Dem_index_cleaned$Country <- 
+  ifelse(Dem_index_cleaned$Country == "Palestine/West Bank", "West Bank", Dem_index_cleaned$Country) 
+
+Dem_index_cleaned$Country <- 
+  ifelse(Dem_index_cleaned$Country == "North Macedonia", "Macedonia", Dem_index_cleaned$Country) 
+
+Dem_index_cleaned$Country <- 
+  ifelse(Dem_index_cleaned$Country == "Laos", "Lao PDR", Dem_index_cleaned$Country)
+
+Dem_index_cleaned$Country <- 
+  ifelse(Dem_index_cleaned$Country == "Czechia", "Czech Republic", Dem_index_cleaned$Country) 
+
+Dem_index_cleaned$Country <- 
+  ifelse(Dem_index_cleaned$Country == "Burma/Myanmar", "Myanmar", Dem_index_cleaned$Country)
+```
+
+###Sort the data into different tables:
+
+```{r}
+Dem_Electoral <-
+  Dem_index_cleaned |>
+  select(Country, Year, Electoral) |>
+  pivot_wider(names_from = Year, values_from = Electoral) |>
+  arrange(Country) |>
+  rename(Twenty_fourteen = 2, Twenty_fifteen = 3, Twenty_sixteen = 4, Twenty_seventeen = 5, Twenty_eighteen = 6, Twenty_nineteen = 7)
+
+Dem_Liberal <-
+  Dem_index_cleaned |>
+  select(Country, Year, Liberal) |>
+  pivot_wider(names_from = Year, values_from = Liberal) |>
+  arrange(Country) |>
+  rename(Twenty_fourteen = 2, Twenty_fifteen = 3, Twenty_sixteen = 4, Twenty_seventeen = 5, Twenty_eighteen = 6, Twenty_nineteen = 7)
+
+Dem_Participatory <-
+  Dem_index_cleaned |>
+  select(Country, Year, Participatory) |>
+  pivot_wider(names_from = Year, values_from = Participatory) |>
+  arrange(Country) |>
+  rename(Twenty_fourteen = 2, Twenty_fifteen = 3, Twenty_sixteen = 4, Twenty_seventeen = 5, Twenty_eighteen = 6, Twenty_nineteen = 7)
+
+Dem_Deliberative <-
+  Dem_index_cleaned |>
+  select(Country, Year, Deliberative) |>
+  pivot_wider(names_from = Year, values_from = Deliberative) |>
+  arrange(Country) |>
+  rename(Twenty_fourteen = 2, Twenty_fifteen = 3, Twenty_sixteen = 4, Twenty_seventeen = 5, Twenty_eighteen = 6, Twenty_nineteen = 7)
+
+Dem_Egalitarian <-
+  Dem_index_cleaned |>
+  select(Country, Year, Egalitarian) |>
+  pivot_wider(names_from = Year, values_from = Egalitarian) |>
+  arrange(Country) |>
+  rename(Twenty_fourteen = 2, Twenty_fifteen = 3, Twenty_sixteen = 4, Twenty_seventeen = 5, Twenty_eighteen = 6, Twenty_nineteen = 7)
+```
+
+###Form maps to visualize:
+
+```{r}
+world = ne_countries(scale = "medium", type = "map_units", returnclass = "sf")
+world |> 
+  ggplot() + 
+  geom_sf()
+names(world)
+```
+
+```{r}
+#Get necessary data:
+
+Dem_Liberal <-
+  Dem_index_cleaned |>
+  select(Country, Year, Liberal) |>
+  pivot_wider(names_from = Year, values_from = Liberal) |> select(Country, "2015") |>
+  rename("name_long"="Country") 
+
+Dem_Participatory <-
+  Dem_index_cleaned |>
+  select(Country, Year, Participatory) |>
+  pivot_wider(names_from = Year, values_from = Participatory) |> select(Country, "2015")|> 
+  rename("name_long"="Country")
+
+Dem_Electoral <-
+  Dem_index_cleaned |>
+  select(Country, Year, Electoral) |>
+  pivot_wider(names_from = Year, values_from = Electoral) |> select(Country, "2015")|> 
+  rename("name_long"="Country")
+
+Dem_Deliberative <-
+  Dem_index_cleaned |>
+  select(Country, Year, Deliberative) |>
+  pivot_wider(names_from = Year, values_from = Deliberative) |> select(Country, "2015")|> 
+  rename("name_long"="Country")
+
+Dem_Egalitarian <-
+  Dem_index_cleaned |>
+  select(Country, Year, Egalitarian) |>
+  pivot_wider(names_from = Year, values_from = Egalitarian) |> select(Country, "2015")|> 
+  rename("name_long"="Country")
+```
+
+```{r}
+#Plot the graph:
+
+world_select <-
+  world |>
+  select(name_long, geometry)
+
+##Electoral Democracy Level:
+
+merged_data_dem_ele <-
+  left_join(Dem_Electoral, world_select, by = "name_long") |>
+  rename(Year = 2)
+
+merged_data_dem_ele |>
+  ggplot() +
+  geom_sf(data = merged_data_dem_ele$geometry, aes(fill = merged_data_dem_ele$Year)) +
+  scale_fill_gradient(low = "darkmagenta", high = "moccasin", name = "Electoral\n\nDemocracy\n\nIndex") +
+  labs(title = "Electoral Democracy Level") +
+  theme_classic()
+
+##Liberal Democracy Level:
+
+merged_data_dem_lib <-
+  left_join(Dem_Liberal, world_select, by = "name_long") |>
+  rename(Year = 2)
+
+merged_data_dem_lib |>
+  ggplot() +
+  geom_sf(data = merged_data_dem_lib$geometry, aes(fill = merged_data_dem_lib$Year)) +
+  scale_fill_gradient(low = "darkmagenta", high = "moccasin", name = "Liberal\n\nDemocracy\n\nIndex") +
+  labs(title = "Liberal Democracy Level") +
+  theme_classic()
+
+##Participatory Democracy Level:
+
+merged_data_dem_par <-
+  left_join(Dem_Participatory, world_select, by = "name_long") |>
+  rename(Year = 2)
+
+merged_data_dem_par |>
+  ggplot() +
+  geom_sf(data = merged_data_dem_par$geometry, aes(fill = merged_data_dem_par$Year)) +
+  scale_fill_gradient(low = "darkmagenta", high = "moccasin", name = "Participatory\n\nDemocracy\n\nIndex") +
+  labs(title = "Participatory Democracy Level") +
+  theme_classic()
+
+##Deliberative Democracy Level:
+
+merged_data_dem_del <-
+  left_join(Dem_Deliberative, world_select, by = "name_long") |>
+  rename(Year = 2)
+
+merged_data_dem_del |>
+  ggplot() +
+  geom_sf(data = merged_data_dem_del$geometry, aes(fill = merged_data_dem_del$Year)) +
+  scale_fill_gradient(low = "darkmagenta", high = "moccasin", name = "Deliberative\n\nDemocracy\n\nIndex") +
+  labs(title = "Delibrative Democracy Level") +
+  theme_classic()
+
+##Egalitarian Democracy Level:
+
+merged_data_dem_ega <-
+  left_join(Dem_Egalitarian, world_select, by = "name_long") |>
+  rename(Year = 2)
+
+merged_data_dem_ega |>
+  ggplot() +
+  geom_sf(data = merged_data_dem_ega$geometry, aes(fill = merged_data_dem_ega$Year)) +
+  scale_fill_gradient(low = "darkmagenta", high = "moccasin", name = "Egalitarian\n\nDemocracy\n\nIndex") +
+  labs(title = "Egalitarian Democracy Level") +
+  theme_classic()
+```
+
+##Dependent variables: Edu_as_of_G, G_as_of_Y
+
+###Arrange Edu_as_of_G:
+
+####Rename:
+
+```{r}
+Edu_as_of_G <-
+  Edu_as_of_G |>
+  rename(Country = ...1)
+```
+
+####Sort out unwanted data:
+
+```{r}
+Edu_as_of_G_cleaned <-
+  Edu_as_of_G |>
+  select(Country, 3, 4, 5, 6, 7, 8) |>
+  rename(Twenty_fourteen = 2, Twenty_fifteen = 3, Twenty_sixteen = 4, Twenty_seventeen = 5, Twenty_eighteen = 6, Twenty_nineteen = 7) |>
+  select(Country, Twenty_fifteen)
+```
+
+###Arrange G_as_of_Y:
+
+####Rename:
+
+```{r}
+G_as_of_Y <-
+  G_as_of_Y |>
+  rename(Country = ...1)
+```
+
+####Sort out unwanted data:
+
+```{r}
+G_as_of_Y_cleaned <-
+  G_as_of_Y |>
+  select(Country, 3, 4, 5, 6, 7, 8) |>
+  rename(Twenty_fourteen = 2, Twenty_fifteen = 3, Twenty_sixteen = 4, Twenty_seventeen = 5, Twenty_eighteen = 6, Twenty_nineteen = 7) |>
+  select(Country, Twenty_fifteen)
+```
+
+###Visualize using histogram:
+
+```{r}
+Edu_as_of_G_hist <-
+  Edu_as_of_G_cleaned |>
+  ggplot(aes(x = Twenty_fifteen)) +
+  geom_histogram(bins = 15, fill = "burlywood3", color = "moccasin") +
+  labs(x = "Education Expenditure as of Government Expenditure (%)", y = "Count", title = "Histrogram of Education Expenditure as of Government Expenditure (2015)") +
+  theme_classic()
+print(Edu_as_of_G_hist)
+
+G_as_of_Y_hist <-
+  G_as_of_Y_cleaned |>
+  ggplot(aes(x = Twenty_fifteen)) +
+  geom_histogram(bins = 15, fill = "burlywood3", color = "moccasin") +
+  labs(x = "Government Expenditure on Education as of GDP (%)", y = "Count", title = "Histrogram of Government Expenditure on Education as of GDP (2015)") +
+  theme_classic()
+print(G_as_of_Y_hist)
+```
+
+#Data Analysis and Visualization
+
+##Scatter plot between independent variable and dependent variable:
+
+```{r}
+G_as_of_Y_cleaned_test <-
+  G_as_of_Y_cleaned |>
+  mutate(Country_t = Country, Year_t_x = Twenty_fifteen) |>
+  select(Country_t, Year_t_x) 
+
+Dem_Electoral <-
+  Dem_Electoral |>
+  rename(Twenty_fifteen = 2)
+
+Dem_Electoral_test <-
+  Dem_Electoral |>
+  mutate(Country_t = name_long, Year_t_y = Twenty_fifteen) |>
+  select(Country_t, Year_t_y)
+
+G_Elec <- 
+  full_join(G_as_of_Y_cleaned_test, Dem_Electoral_test)
+
+G_Elec |> 
+  ggplot(aes(y = Year_t_x, x = Year_t_y)) + 
+  geom_point(alpha = 0.85, size = 3.3, color = "burlywood3") + 
+  labs(y = "Education expenditure as of GDP (%)", x = "Electoral Democracy Index",
+       title = "Education expenditure as of Y and Electoral Democracy Level (2015)",
+       caption = "Data source: V-Dem v.13, Word Bank") +
+  theme_classic()
+```
+
+```{r}
+G_as_of_Y_cleaned_test <-
+  G_as_of_Y_cleaned |>
+  mutate(Country_t = Country, Year_t_x = Twenty_fifteen) |>
+  select(Country_t, Year_t_x) 
+
+Dem_Liberal <-
+  Dem_Liberal |>
+  rename(Twenty_fifteen = 2)
+
+Dem_Liberal_test <-
+  Dem_Liberal |>
+  mutate(Country_t = name_long, Year_t_y = Twenty_fifteen) |>
+  select(Country_t, Year_t_y)
+
+G_Libe <- 
+  full_join(G_as_of_Y_cleaned_test, Dem_Liberal_test)
+
+G_Libe |> 
+  ggplot(aes(y = Year_t_x, x = Year_t_y)) + 
+  geom_point(alpha = 0.85, size = 3.3, color = "burlywood3") + 
+  labs(y = "Education expenditure as of GDP (%)", x = "Liberal Democracy Index", 
+       title = "Education expenditure as of Y and Liberal Democracy Level (2015)",
+       caption = "Data source: V-Dem v.13, Word Bank") +
+  theme_classic()
+```
+
+```{r}
+G_as_of_Y_cleaned_test <-
+  G_as_of_Y_cleaned |>
+  mutate(Country_t = Country, Year_t_x = Twenty_fifteen) |>
+  select(Country_t, Year_t_x) 
+
+Dem_Participatory <-
+  Dem_Participatory |>
+  rename(Twenty_fifteen = 2)
+
+Dem_Participatory_test <-
+  Dem_Participatory |>
+  mutate(Country_t = name_long, Year_t_y = Twenty_fifteen) |>
+  select(Country_t, Year_t_y)
+
+G_Part <- 
+  full_join(G_as_of_Y_cleaned_test, Dem_Participatory_test)
+
+G_Part |> 
+  ggplot(aes(y = Year_t_x, x = Year_t_y)) + 
+  geom_point(alpha = 0.85, size = 3.3, color = "burlywood3") + 
+  labs(y = "Education expenditure as of GDP (%)", x = "Participatory Democracy Index", 
+       title = "Education expenditure as of Y and Participatory Democracy Level (2015)",
+       caption = "Data source: V-Dem v.13, Word Bank") +
+  theme_classic()
+```
+
+```{r}
+G_as_of_Y_cleaned_test <-
+  G_as_of_Y_cleaned |>
+  mutate(Country_t = Country, Year_t_x = Twenty_fifteen) |>
+  select(Country_t, Year_t_x) 
+
+Dem_Deliberative <-
+  Dem_Deliberative |>
+  rename(Twenty_fifteen = 2)
+
+Dem_Deliberative_test <-
+  Dem_Deliberative |>
+  mutate(Country_t = name_long, Year_t_y = Twenty_fifteen) |>
+  select(Country_t, Year_t_y)
+
+G_Deli <- 
+  full_join(G_as_of_Y_cleaned_test, Dem_Deliberative_test)
+
+G_Deli |> 
+  ggplot(aes(y = Year_t_x, x = Year_t_y)) + 
+  geom_point(alpha = 0.85, size = 3.3, color = "burlywood3") + 
+  labs(y = "Education expenditure as of GDP (%)", x = "Deliberative Democracy Index",
+       title = "Education expenditure as of Y and Deliberative Democracy Level (2015)",
+       caption = "Data source: V-Dem v.13, Word Bank") +
+  theme_classic()
+```
+
+```{r}
+G_as_of_Y_cleaned_test <-
+  G_as_of_Y_cleaned |>
+  mutate(Country_t = Country, Year_t_x = Twenty_fifteen) |>
+  select(Country_t, Year_t_x) 
+
+Dem_Egalitarian <-
+  Dem_Egalitarian |>
+  rename(Twenty_fifteen = 2)
+
+Dem_Egalitarian_test <-
+  Dem_Egalitarian |>
+  mutate(Country_t = name_long, Year_t_y = Twenty_fifteen) |>
+  select(Country_t, Year_t_y)
+
+G_Egal <- 
+  full_join(G_as_of_Y_cleaned_test, Dem_Egalitarian_test)
+
+G_Egal |> 
+  ggplot(aes(y = Year_t_x, x = Year_t_y)) + 
+  geom_point(alpha = 0.85, size = 3.3, color = "burlywood3") + 
+  labs(y = "Education expenditure as of GDP (%)", x = "Egalitarian Democracy Index", 
+       title = "Education expenditure as of Y and Egalitarian Democracy Level (2015)",
+       caption = "Data source: V-Dem v.13, Word Bank") +
+  theme_classic()
+```
+
+```{r}
+Edu_as_of_G_cleaned_test <-
+  Edu_as_of_G_cleaned |>
+  mutate(Country_t = Country, Year_t_x = Twenty_fifteen) |>
+  select(Country_t, Year_t_x) 
+
+Dem_Electoral_test <-
+  Dem_Electoral |>
+  mutate(Country_t = name_long, Year_t_y = Twenty_fifteen) |>
+  select(Country_t, Year_t_y)
+
+E_Elec <- 
+  full_join(Edu_as_of_G_cleaned_test, Dem_Electoral_test)
+
+E_Elec |> 
+  ggplot(aes(y = Year_t_x, x = Year_t_y)) + 
+  geom_point(alpha = 0.85, size = 3.3, color = "burlywood3") + 
+  labs(y = "Education expenditure as of government expenditure (%)", x = "Electoral Democracy Index", 
+       title = "Education expenditure as of G and Electoral Democracy Level (2015)",
+       caption = "Data source: V-Dem v.13, Word Bank") +
+  theme_classic()
+```
+
+```{r}
+Edu_as_of_G_cleaned_test <-
+  Edu_as_of_G_cleaned |>
+  mutate(Country_t = Country, Year_t_x = Twenty_fifteen) |>
+  select(Country_t, Year_t_x) 
+
+Dem_Liberal_test <-
+  Dem_Liberal |>
+  mutate(Country_t = name_long, Year_t_y = Twenty_fifteen) |>
+  select(Country_t, Year_t_y)
+
+E_Libe <- 
+  full_join(Edu_as_of_G_cleaned_test, Dem_Liberal_test)
+
+E_Libe |> 
+  ggplot(aes(y = Year_t_x, x = Year_t_y)) + 
+  geom_point(alpha = 0.85, size = 3.3, color = "burlywood3") + 
+  labs(y = "Education expenditure as of government expenditure (%)", x = "Liberal Democracy Index", 
+       title = "Education expenditure as of G and Liberal Democracy Level (2015)",
+       caption = "Data source: V-Dem v.13, Word Bank") +
+  theme_classic()
+```
+
+```{r}
+Edu_as_of_G_cleaned_test <-
+  Edu_as_of_G_cleaned |>
+  mutate(Country_t = Country, Year_t_x = Twenty_fifteen) |>
+  select(Country_t, Year_t_x) 
+
+Dem_Participatory_test <-
+  Dem_Participatory |>
+  mutate(Country_t = name_long, Year_t_y = Twenty_fifteen) |>
+  select(Country_t, Year_t_y)
+
+E_Part <- 
+  full_join(Edu_as_of_G_cleaned_test, Dem_Participatory_test)
+
+E_Part |> 
+  ggplot(aes(y = Year_t_x, x = Year_t_y)) + 
+  geom_point(alpha = 0.85, size = 3.3, color = "burlywood3") + 
+  labs(y = "Education expenditure as of government expenditure (%)", x = "Participatory Democracy Index", 
+       title = "Education expenditure as of G and Participatory Democracy Level (2015)",
+       caption = "Data source: V-Dem v.13, Word Bank") +
+  theme_classic()
+```
+
+```{r}
+Edu_as_of_G_cleaned_test <-
+  Edu_as_of_G_cleaned |>
+  mutate(Country_t = Country, Year_t_x = Twenty_fifteen) |>
+  select(Country_t, Year_t_x) 
+
+Dem_Deliberative_test <-
+  Dem_Deliberative |>
+  mutate(Country_t = name_long, Year_t_y = Twenty_fifteen) |>
+  select(Country_t, Year_t_y)
+
+E_Deli <- 
+  full_join(Edu_as_of_G_cleaned_test, Dem_Deliberative_test)
+
+E_Deli |> 
+  ggplot(aes(y = Year_t_x, x = Year_t_y)) + 
+  geom_point(alpha = 0.85, size = 3.3, color = "burlywood3") + 
+  labs(y = "Education expenditure as of government expenditure (%)", x = "Deliberative Democracy Index", 
+       title = "Education expenditure as of G and Deliberative Democracy Level (2015)",
+       caption = "Data source: V-Dem v.13, Word Bank") +
+  theme_classic()
+```
+
+```{r}
+Edu_as_of_G_cleaned_test <-
+  Edu_as_of_G_cleaned |>
+  mutate(Country_t = Country, Year_t_x = Twenty_fifteen) |>
+  select(Country_t, Year_t_x) 
+
+Dem_Egalitarian_test <-
+  Dem_Egalitarian |>
+  mutate(Country_t = name_long, Year_t_y = Twenty_fifteen) |>
+  select(Country_t, Year_t_y)
+
+E_Egal <- 
+  full_join(Edu_as_of_G_cleaned_test, Dem_Egalitarian_test)
+
+E_Egal |> 
+  ggplot(aes(y = Year_t_x, x = Year_t_y)) + 
+  geom_point(alpha = 0.85, size = 3.3, color = "burlywood3") + 
+  labs(y = "Education expenditure as of government expenditure (%)", x = "Egalitarian Democracy Index", 
+       title = "Education expenditure as of G and Egalitarian Democracy Level (2015)",
+       caption = "Data source: V-Dem v.13, Word Bank") +
+  theme_classic()
+```
+
+##Bubble plot between among all three variables
+
+###Get necessary data:
+
+```{r}
+Dem_index_cleaned_bubble <-
+  Dem_index_cleaned |>
+  select(Country, Year, Electoral, Liberal, Participatory, Deliberative, Egalitarian) |>
+  filter(Year == 2015) |>
+  mutate(Democracy = 0.2*(Electoral + Liberal + Participatory + Deliberative + Egalitarian)) |>
+  select(Country, Democracy)
+```
+
+###Merge all three variables:
+
+```{r}
+d <-
+  full_join(Dem_index_cleaned_bubble, Edu_as_of_G_cleaned, by = "Country")
+d <-
+  full_join(d, G_as_of_Y_cleaned, by = "Country")
+```
+
+###Form bubble plot:
+
+```{r}
+d |>
+  ggplot(aes(x = Twenty_fifteen.x, y = Twenty_fifteen.y, size = Democracy, color = Democracy)) +
+  geom_point(alpha = 0.7) +
+  scale_size(name = "Democracy\nLevel in Size") +
+  scale_color_viridis_c(option = "F", name = "Democracy\nLevel in Color") +
+  labs(x = "Education Expenditure as of Government Expenditure (%)", y = "Government Expenditure on Education as of GDP (%)", title = "Government Expenditure on Education as of GDP v.s.\nEducational Expenditure as of Government Expenditure (2015)", caption = "Data Source: V-Dem v.13, World Bank") +
+  theme_classic(base_size = 12)
+```
+
+##Bubble plot by level of education:
+
+###Read in more dependent variables:
+
+```{r}
+G_as_of_Y_Pre_Primary <- read_excel("data/EdStats_Indicators_Report_Pre_Primary.xlsx")
+G_as_of_Y_Primary <- read_excel("data/EdStats_Indicators_Report_Primary.xlsx")
+G_as_of_Y_Secondary <- read_excel("data/EdStats_Indicators_Report_Secondary.xlsx")
+G_as_of_Y_Post_Secondary_Non_Tertiary <- read_excel("data/EdStats_Indicators_Report_Post_Secondary_Non_Tertiary.xlsx")
+G_as_of_Y_Tertiary <- read_excel("data/EdStats_Indicators_Report_Tertiary.xlsx")
+
+G_as_of_Y_Pre_Primary <-
+  G_as_of_Y_Pre_Primary |> 
+  rename(Country = ...1)
+G_as_of_Y_Primary <-
+  G_as_of_Y_Primary |> 
+  rename(Country = ...1)
+G_as_of_Y_Secondary <-
+  G_as_of_Y_Secondary |> 
+  rename(Country = ...1)
+G_as_of_Y_Post_Secondary_Non_Tertiary <-
+  G_as_of_Y_Post_Secondary_Non_Tertiary |> 
+  rename(Country = ...1)
+G_as_of_Y_Tertiary <-
+  G_as_of_Y_Tertiary |> 
+  rename(Country = ...1)
+```
+
+###Pre-Primary as of total:
+
+```{r}
+G_as_of_Y_Pre_Primary_cleaned <-
+  G_as_of_Y_Pre_Primary |>
+  select(Country, 3, 4, 5, 6, 7, 8) |>
+  rename(Twenty_fourteen = 2, Twenty_fifteen = 3, Twenty_sixteen = 4, Twenty_seventeen = 5, Twenty_eighteen = 6, Twenty_nineteen = 7) |>
+  select(Country, Twenty_fifteen)
+
+d_Pre_Primary <-
+  full_join(Dem_index_cleaned_bubble, G_as_of_Y_Pre_Primary_cleaned, by = "Country")
+d_Pre_Primary <-
+  full_join(d_Pre_Primary, G_as_of_Y_cleaned, by = "Country")
+
+d_Pre_Primary |>
+  ggplot(aes(x = Twenty_fifteen.x, y = Twenty_fifteen.y, size = Democracy, color = Democracy)) +
+  geom_point(alpha = 0.7) +
+  scale_size(name = "Democracy\nLevel in Size") +
+  scale_color_viridis_c(option = "F", name = "Democracy\nLevel in Color") +
+  labs(x = "Government Expenditure on Pre-Primary Education as of GDP (%)", y = "Government Expenditure on Education as of GDP (%)", title = "Government Expenditure on Education as of GDP v.s.\nGovernment Expenditure on Pre-Primary Education as of GDP\n(2015)", caption = "Data Source: V-Dem v.13, World Bank") +
+  theme_classic(base_size = 12)
+```
+
+###Primary as of total:
+
+```{r}
+G_as_of_Y_Primary_cleaned <-
+  G_as_of_Y_Primary |>
+  select(Country, 3, 4, 5, 6, 7, 8) |>
+  rename(Twenty_fourteen = 2, Twenty_fifteen = 3, Twenty_sixteen = 4, Twenty_seventeen = 5, Twenty_eighteen = 6, Twenty_nineteen = 7) |>
+  select(Country, Twenty_fifteen)
+
+d_Primary <-
+  full_join(Dem_index_cleaned_bubble, G_as_of_Y_Primary_cleaned, by = "Country")
+d_Primary <-
+  full_join(d_Primary, G_as_of_Y_cleaned, by = "Country")
+
+d_Primary |>
+  ggplot(aes(x = Twenty_fifteen.x, y = Twenty_fifteen.y, size = Democracy, color = Democracy)) +
+  geom_point(alpha = 0.7) +
+  scale_size(name = "Democracy\nLevel in Size") +
+  scale_color_viridis_c(option = "F", name = "Democracy\nLevel in Color") +
+  labs(x = "Government Expenditure on Primary Education as of GDP (%)", y = "Government Expenditure on Education as of GDP (%)", title = "Government Expenditure on Education as of GDP v.s.\nGovernment Expenditure on Primary Education as of GDP\n(2015)", caption = "Data Source: V-Dem v.13, World Bank") +
+  theme_classic(base_size = 12)
+```
+
+###Secondary as of total:
+
+```{r}
+G_as_of_Y_Secondary_cleaned <-
+  G_as_of_Y_Secondary |>
+  select(Country, 3, 4, 5, 6, 7, 8) |>
+  rename(Twenty_fourteen = 2, Twenty_fifteen = 3, Twenty_sixteen = 4, Twenty_seventeen = 5, Twenty_eighteen = 6, Twenty_nineteen = 7) |>
+  select(Country, Twenty_fifteen)
+
+d_Secondary <-
+  full_join(Dem_index_cleaned_bubble, G_as_of_Y_Secondary_cleaned, by = "Country")
+d_Secondary <-
+  full_join(d_Secondary, G_as_of_Y_cleaned, by = "Country")
+
+d_Secondary |>
+  ggplot(aes(x = Twenty_fifteen.x, y = Twenty_fifteen.y, size = Democracy, color = Democracy)) +
+  geom_point(alpha = 0.7) +
+  scale_size(name = "Democracy\nLevel in Size") +
+  scale_color_viridis_c(option = "F", name = "Democracy\nLevel in Color") +
+  labs(x = "Government Expenditure on Secondary Education as of GDP (%)", y = "Government Expenditure on Education as of GDP (%)", title = "Government Expenditure on Education as of GDP v.s.\nGovernment Expenditure on Secondary Education as of GDP\n(2015)", caption = "Data Source: V-Dem v.13, World Bank") +
+  theme_classic(base_size = 12)
+```
+
+###Post-Secondary Non-Tertiary as of total:
+
+```{r}
+G_as_of_Y_Post_Secondary_Non_Tertiary_cleaned <-
+  G_as_of_Y_Post_Secondary_Non_Tertiary |>
+  select(Country, 3, 4, 5, 6, 7, 8) |>
+  rename(Twenty_fourteen = 2, Twenty_fifteen = 3, Twenty_sixteen = 4, Twenty_seventeen = 5, Twenty_eighteen = 6, Twenty_nineteen = 7) |>
+  select(Country, Twenty_fifteen)
+
+d_Post_Secondary_Non_Tertiary <-
+  full_join(Dem_index_cleaned_bubble, G_as_of_Y_Post_Secondary_Non_Tertiary_cleaned, by = "Country")
+d_Post_Secondary_Non_Tertiary <-
+  full_join(d_Post_Secondary_Non_Tertiary, G_as_of_Y_cleaned, by = "Country")
+
+d_Post_Secondary_Non_Tertiary |>
+  ggplot(aes(x = Twenty_fifteen.x, y = Twenty_fifteen.y, size = Democracy, color = Democracy)) +
+  geom_point(alpha = 0.7) +
+  scale_size(name = "Democracy\nLevel in Size") +
+  scale_color_viridis_c(option = "F", name = "Democracy\nLevel in Color") +
+  labs(x = "Government Expenditure on Post-Secondary Non-Tertiary Education as of GDP (%)", y = "Government Expenditure on Education as of GDP (%)", title = "Government Expenditure on Education as of GDP v.s.\nGovernment Expenditure on Post-Secondary Non-Tertiary Education as of GDP\n(2015)", caption = "Data Source: V-Dem v.13, World Bank") +
+  theme_classic(base_size = 12)
+```
+
+###Tertiary as of total:
+
+```{r}
+G_as_of_Y_Tertiary_cleaned <-
+  G_as_of_Y_Tertiary |>
+  select(Country, 3, 4, 5, 6, 7, 8) |>
+  rename(Twenty_fourteen = 2, Twenty_fifteen = 3, Twenty_sixteen = 4, Twenty_seventeen = 5, Twenty_eighteen = 6, Twenty_nineteen = 7) |>
+  select(Country, Twenty_fifteen)
+
+d_Tertiary <-
+  full_join(Dem_index_cleaned_bubble, G_as_of_Y_Tertiary_cleaned, by = "Country")
+d_Tertiary <-
+  full_join(d_Tertiary, G_as_of_Y_cleaned, by = "Country")
+
+d_Tertiary |>
+  ggplot(aes(x = Twenty_fifteen.x, y = Twenty_fifteen.y, size = Democracy, color = Democracy)) +
+  geom_point(alpha = 0.7) +
+  scale_size(name = "Democracy\nLevel in Size") +
+  scale_color_viridis_c(option = "F", name = "Democracy\nLevel in Color") +
+  labs(x = "Government Expenditure on Tertiary Education as of GDP (%)", y = "Government Expenditure on Education as of GDP (%)", title = "Government Expenditure on Education as of GDP v.s.\nGovernment Expenditure on Pre-Primary Education as of GDP\n(2015)", caption = "Data Source: V-Dem v.13, World Bank") +
+  theme_classic(base_size = 12)
+```
+
+##Stack bar plot by level:
+
+```{r}
+d_stack <-
+  full_join(Dem_index_cleaned_bubble, G_as_of_Y_Pre_Primary_cleaned, by = "Country")
+d_stack <-
+  full_join(d_stack, G_as_of_Y_Primary_cleaned, by = "Country")
+d_stack <-
+  full_join(d_stack, G_as_of_Y_Secondary_cleaned, by = "Country")
+d_stack <-
+  full_join(d_stack, G_as_of_Y_Post_Secondary_Non_Tertiary_cleaned, by = "Country")
+d_stack <-
+  full_join(d_stack, G_as_of_Y_Tertiary_cleaned, by = "Country") |>
+  rename(Pre_Primary_1 = Twenty_fifteen.x, Primary_1 = Twenty_fifteen.y, Secondary_1 = Twenty_fifteen.x.x, Post_S_Non_T_1 = Twenty_fifteen.y.y, Tertiary_1 = Twenty_fifteen)
+
+d_stack <-
+  d_stack |>
+  mutate(Pre_Primary = as.numeric(Pre_Primary_1)) |>
+  mutate(Primary = as.numeric(Primary_1)) |>
+  mutate(Secondary = as.numeric(Secondary_1)) |>
+  mutate(Post_S_Non_T = as.numeric(Post_S_Non_T_1)) |>
+  mutate(Tertiary = as.numeric(Tertiary_1)) |>
+  select(Country, Democracy, Pre_Primary, Primary, Secondary, Post_S_Non_T, Tertiary)
+```
+
+###Top 20 democracy countries:
+
+```{r}
+d_stack_1 <-
+  d_stack |>
+  arrange(-Democracy) |>
+  filter(Democracy >= 0.7794) |>
+  select(Country, Democracy, Pre_Primary, Primary, Secondary, Post_S_Non_T, Tertiary) |>
+  pivot_longer(
+    cols = c(Pre_Primary, Primary, Secondary, Post_S_Non_T, Tertiary), 
+    names_to = "Level", 
+    values_to = "Percentage"
+  ) 
+
+d_stack_1 |> 
+  ggplot(aes(y = reorder(Country, Democracy), x = Percentage, fill = Level)) +
+  geom_bar(stat = "identity", position = "stack") +
+  scale_fill_viridis(discrete = T, option = "plasma", direction = -1) +
+  labs(y = "Country", x = "Percentage", title = "Education Expenditure by Level as of GDP\nfor Top 20 Democracy Countries (2015)", fill = "Level of Education\nas of GDP (%)")  +
+  theme_classic()
+```
+
+###Lowest 20 democracy countries:
+
+```{r}
+d_stack_2 <-
+  d_stack |>
+  arrange(Democracy) |>
+  filter(Democracy <= 0.1062) |>
+  select(Country, Democracy, Pre_Primary, Primary, Secondary, Post_S_Non_T, Tertiary) |>
+  pivot_longer(
+    cols = c(Pre_Primary, Primary, Secondary, Post_S_Non_T, Tertiary), 
+    names_to = "Level", 
+    values_to = "Percentage"
+  ) 
+
+d_stack_2 |> 
+  ggplot(aes(y = reorder(Country, -Democracy), x = Percentage, fill = Level)) +
+  geom_bar(stat = "identity", position = "stack") +
+  scale_fill_viridis(discrete = T, option = "plasma", direction = -1) +
+  labs(y = "Country", x = "Percentage", title = "Education Expenditure by Level as of GDP\nfor Lowest 20 Democracy Countries (2015)", fill = "Level of Education\nas of GDP (%)")  +
+  theme_classic()
+```
+
+###All countries except the last 20:
+
+```{r}
+d_stack_3 <-
+  d_stack |>
+  arrange(Democracy) |>
+  filter(Democracy >= 0.1062) |>
+  select(Country, Democracy, Pre_Primary, Primary, Secondary, Post_S_Non_T, Tertiary) |>
+  pivot_longer(
+    cols = c(Pre_Primary, Primary, Secondary, Post_S_Non_T, Tertiary), 
+    names_to = "Level", 
+    values_to = "Percentage"
+  ) 
+
+d_stack_3 |> 
+  ggplot(aes(y = reorder(Country, -Democracy), x = Percentage, fill = Level)) +
+  geom_bar(stat = "identity", position = "stack") +
+  scale_fill_viridis(discrete = T, option = "plasma", direction = -1) +
+  labs(y = "Country", x = "Percentage", title = "Education Expenditure by Level as of GDP\nfor All Countries other than the Last 20 (2015)", fill = "Level of Education\nas of GDP (%)")  +
+  theme_classic(base_size = 3)
+```
+
+###[FURTHER]: All countries except the last 20 (stack bar in a circle):
+
+```{r}
+#d_stack_3 |>
+#  ggplot(aes(y = reorder(Country, -Democracy), x = Percentage, fill = Level)) +
+#  geom_bar(stat = "identity") +
+#  scale_fill_viridis(discrete = TRUE, option = "plasma", direction = -1) +
+#  coord_polar() 
+```

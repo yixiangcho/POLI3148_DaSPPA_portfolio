@@ -1,0 +1,55 @@
+---
+title: "in class activity"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+date: "2023-09-21"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+## level 1 heading
+
+### level 2 heading
+
+### level 3 heading
+
+###### wow soooo small
+
+Add code to your document
+
+```{r}
+log(50)
+```
+
+```{r}
+1+1
+```
+
+output figures
+
+```{r}
+plot(1:10,1:10)
+```
+
+```{r}
+cars
+```
+
+## In-line code
+
+scientific research shows that 10+10=`r10+10.`\
+
+```{r}
+#install.packages("tinytex")
+#tinytex::install_tinytex()
+```
+asljdfshfdejfghf
+dfvhbsjaifhvbjsao
+hgfjiwfhugaduijswoqpifhsdug\
+adjsdvbhadkfbhv

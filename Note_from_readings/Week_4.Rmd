@@ -1,0 +1,354 @@
+---
+title: "Week_4_reading"
+output: html_document
+date: "2023-8-28"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Data tidying: 
+
+#There are three interrelated rules that make a dataset tidy:
+
+#Each variable is a column; each column is a variable.
+#Each observation is a row; each row is an observation.
+#Each value is a cell; each cell is a single value.
+```
+
+```{r}
+# Advantages for doing data tidying
+
+#There’s a general advantage to picking one consistent way of storing data. If you have a consistent data structure, it’s easier to learn the tools that work with it because they have an underlying uniformity.
+
+#There’s a specific advantage to placing variables in columns because it allows R’s vectorized nature to shine. As you learned in Section 3.3.1 and Section 3.5.2, most built-in R functions work with vectors of values. That makes transforming tidy data feel particularly natural.
+```
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+# Compute rate per 10,000
+table1 |>
+  mutate(rate = cases / population * 10000)
+#> # A tibble: 6 × 5
+#>   country      year  cases population  rate
+#>   <chr>       <dbl>  <dbl>      <dbl> <dbl>
+#> 1 Afghanistan  1999    745   19987071 0.373
+#> 2 Afghanistan  2000   2666   20595360 1.29 
+#> 3 Brazil       1999  37737  172006362 2.19 
+#> 4 Brazil       2000  80488  174504898 4.61 
+#> 5 China        1999 212258 1272915272 1.67 
+#> 6 China        2000 213766 1280428583 1.67
+
+# Compute total cases per year
+table1 |> 
+  group_by(year) |> 
+  summarize(total_cases = sum(cases))
+#> # A tibble: 2 × 2
+#>    year total_cases
+#>   <dbl>       <dbl>
+#> 1  1999      250740
+#> 2  2000      296920
+
+# Visualize changes over time
+ggplot(table1, aes(x = year, y = cases)) +
+  geom_line(aes(group = country), color = "grey50") +
+  geom_point(aes(color = country, shape = country)) +
+  scale_x_continuous(breaks = c(1999, 2000)) # x-axis breaks at 1999 and 2000
+```
+
+```{r}
+billboard |> 
+  pivot_longer(
+    cols = starts_with("wk"), 
+    names_to = "week", 
+    values_to = "rank"
+  )
+#> # A tibble: 24,092 × 5
+#>    artist track                   date.entered week   rank
+#>    <chr>  <chr>                   <date>       <chr> <dbl>
+#>  1 2 Pac  Baby Don't Cry (Keep... 2000-02-26   wk1      87
+#>  2 2 Pac  Baby Don't Cry (Keep... 2000-02-26   wk2      82
+#>  3 2 Pac  Baby Don't Cry (Keep... 2000-02-26   wk3      72
+#>  4 2 Pac  Baby Don't Cry (Keep... 2000-02-26   wk4      77
+#>  5 2 Pac  Baby Don't Cry (Keep... 2000-02-26   wk5      87
+#>  6 2 Pac  Baby Don't Cry (Keep... 2000-02-26   wk6      94
+#>  7 2 Pac  Baby Don't Cry (Keep... 2000-02-26   wk7      99
+#>  8 2 Pac  Baby Don't Cry (Keep... 2000-02-26   wk8      NA
+#>  9 2 Pac  Baby Don't Cry (Keep... 2000-02-26   wk9      NA
+#> 10 2 Pac  Baby Don't Cry (Keep... 2000-02-26   wk10     NA
+#> # ℹ 24,082 more rows
+```
+
+```{r}
+billboard |> 
+  pivot_longer(
+    cols = starts_with("wk"), 
+    names_to = "week", 
+    values_to = "rank",
+    values_drop_na = TRUE
+  )
+#> # A tibble: 5,307 × 5
+#>   artist track                   date.entered week   rank
+#>   <chr>  <chr>                   <date>       <chr> <dbl>
+#> 1 2 Pac  Baby Don't Cry (Keep... 2000-02-26   wk1      87
+#> 2 2 Pac  Baby Don't Cry (Keep... 2000-02-26   wk2      82
+#> 3 2 Pac  Baby Don't Cry (Keep... 2000-02-26   wk3      72
+#> 4 2 Pac  Baby Don't Cry (Keep... 2000-02-26   wk4      77
+#> 5 2 Pac  Baby Don't Cry (Keep... 2000-02-26   wk5      87
+#> 6 2 Pac  Baby Don't Cry (Keep... 2000-02-26   wk6      94
+#> # ℹ 5,301 more rows
+```
+
+```{r}
+billboard_longer <- billboard |> 
+  pivot_longer(
+    cols = starts_with("wk"), 
+    names_to = "week", 
+    values_to = "rank",
+    values_drop_na = TRUE
+  ) |> 
+  mutate(
+    week = parse_number(week)
+  )
+billboard_longer
+#> # A tibble: 5,307 × 5
+#>   artist track                   date.entered  week  rank
+#>   <chr>  <chr>                   <date>       <dbl> <dbl>
+#> 1 2 Pac  Baby Don't Cry (Keep... 2000-02-26       1    87
+#> 2 2 Pac  Baby Don't Cry (Keep... 2000-02-26       2    82
+#> 3 2 Pac  Baby Don't Cry (Keep... 2000-02-26       3    72
+#> 4 2 Pac  Baby Don't Cry (Keep... 2000-02-26       4    77
+#> 5 2 Pac  Baby Don't Cry (Keep... 2000-02-26       5    87
+#> 6 2 Pac  Baby Don't Cry (Keep... 2000-02-26       6    94
+#> # ℹ 5,301 more rows
+```
+
+```{r}
+billboard_longer |> 
+  ggplot(aes(x = week, y = rank, group = track)) + 
+  geom_line(alpha = 0.25) + 
+  scale_y_reverse()
+```
+
+```{r}
+df <- tribble(
+  ~id,  ~bp1, ~bp2,
+   "A",  100,  120,
+   "B",  140,  115,
+   "C",  120,  125
+)
+```
+
+```{r}
+df |> 
+  pivot_longer(
+    cols = bp1:bp2,
+    names_to = "measurement",
+    values_to = "value"
+  )
+#> # A tibble: 6 × 3
+#>   id    measurement value
+#>   <chr> <chr>       <dbl>
+#> 1 A     bp1           100
+#> 2 A     bp2           120
+#> 3 B     bp1           140
+#> 4 B     bp2           115
+#> 5 C     bp1           120
+#> 6 C     bp2           125
+```
+
+```{r}
+who2 |> 
+  pivot_longer(
+    cols = !(country:year),
+    names_to = c("diagnosis", "gender", "age"), 
+    names_sep = "_",
+    values_to = "count"
+  )
+#> # A tibble: 405,440 × 6
+#>   country      year diagnosis gender age   count
+#>   <chr>       <dbl> <chr>     <chr>  <chr> <dbl>
+#> 1 Afghanistan  1980 sp        m      014      NA
+#> 2 Afghanistan  1980 sp        m      1524     NA
+#> 3 Afghanistan  1980 sp        m      2534     NA
+#> 4 Afghanistan  1980 sp        m      3544     NA
+#> 5 Afghanistan  1980 sp        m      4554     NA
+#> 6 Afghanistan  1980 sp        m      5564     NA
+#> # ℹ 405,434 more rows
+```
+
+```{r}
+household |> 
+  pivot_longer(
+    cols = !family, 
+    names_to = c(".value", "child"), 
+    names_sep = "_", 
+    values_drop_na = TRUE
+  )
+#> # A tibble: 9 × 4
+#>   family child  dob        name 
+#>    <int> <chr>  <date>     <chr>
+#> 1      1 child1 1998-11-26 Susan
+#> 2      1 child2 2000-01-29 Jose 
+#> 3      2 child1 1996-06-22 Mark 
+#> 4      3 child1 2002-07-11 Sam  
+#> 5      3 child2 2004-04-05 Seth 
+#> 6      4 child1 2004-10-10 Craig
+#> # ℹ 3 more rows
+```
+
+```{r}
+cms_patient_experience |> 
+  distinct(measure_cd, measure_title)
+#> # A tibble: 6 × 2
+#>   measure_cd   measure_title                                                 
+#>   <chr>        <chr>                                                         
+#> 1 CAHPS_GRP_1  CAHPS for MIPS SSM: Getting Timely Care, Appointments, and In…
+#> 2 CAHPS_GRP_2  CAHPS for MIPS SSM: How Well Providers Communicate            
+#> 3 CAHPS_GRP_3  CAHPS for MIPS SSM: Patient's Rating of Provider              
+#> 4 CAHPS_GRP_5  CAHPS for MIPS SSM: Health Promotion and Education            
+#> 5 CAHPS_GRP_8  CAHPS for MIPS SSM: Courteous and Helpful Office Staff        
+#> 6 CAHPS_GRP_12 CAHPS for MIPS SSM: Stewardship of Patient Resources
+```
+
+```{r}
+cms_patient_experience |> 
+  pivot_wider(
+    names_from = measure_cd,
+    values_from = prf_rate
+  )
+#> # A tibble: 500 × 9
+#>   org_pac_id org_nm                   measure_title   CAHPS_GRP_1 CAHPS_GRP_2
+#>   <chr>      <chr>                    <chr>                 <dbl>       <dbl>
+#> 1 0446157747 USC CARE MEDICAL GROUP … CAHPS for MIPS…          63          NA
+#> 2 0446157747 USC CARE MEDICAL GROUP … CAHPS for MIPS…          NA          87
+#> 3 0446157747 USC CARE MEDICAL GROUP … CAHPS for MIPS…          NA          NA
+#> 4 0446157747 USC CARE MEDICAL GROUP … CAHPS for MIPS…          NA          NA
+#> 5 0446157747 USC CARE MEDICAL GROUP … CAHPS for MIPS…          NA          NA
+#> 6 0446157747 USC CARE MEDICAL GROUP … CAHPS for MIPS…          NA          NA
+#> # ℹ 494 more rows
+#> # ℹ 4 more variables: CAHPS_GRP_3 <dbl>, CAHPS_GRP_5 <dbl>, …
+```
+
+```{r}
+cms_patient_experience |> 
+  pivot_wider(
+    id_cols = starts_with("org"),
+    names_from = measure_cd,
+    values_from = prf_rate
+  )
+#> # A tibble: 95 × 8
+#>   org_pac_id org_nm           CAHPS_GRP_1 CAHPS_GRP_2 CAHPS_GRP_3 CAHPS_GRP_5
+#>   <chr>      <chr>                  <dbl>       <dbl>       <dbl>       <dbl>
+#> 1 0446157747 USC CARE MEDICA…          63          87          86          57
+#> 2 0446162697 ASSOCIATION OF …          59          85          83          63
+#> 3 0547164295 BEAVER MEDICAL …          49          NA          75          44
+#> 4 0749333730 CAPE PHYSICIANS…          67          84          85          65
+#> 5 0840104360 ALLIANCE PHYSIC…          66          87          87          64
+#> 6 0840109864 REX HOSPITAL INC          73          87          84          67
+#> # ℹ 89 more rows
+#> # ℹ 2 more variables: CAHPS_GRP_8 <dbl>, CAHPS_GRP_12 <dbl>
+```
+
+```{r}
+df <- tribble(
+  ~id, ~measurement, ~value,
+  "A",        "bp1",    100,
+  "B",        "bp1",    140,
+  "B",        "bp2",    115, 
+  "A",        "bp2",    120,
+  "A",        "bp3",    105
+)
+```
+
+```{r}
+df |> 
+  pivot_wider(
+    names_from = measurement,
+    values_from = value
+  )
+#> # A tibble: 2 × 4
+#>   id      bp1   bp2   bp3
+#>   <chr> <dbl> <dbl> <dbl>
+#> 1 A       100   120   105
+#> 2 B       140   115    NA
+```
+
+```{r}
+df |> 
+  distinct(measurement) |> 
+  pull()
+#> [1] "bp1" "bp2" "bp3"
+```
+
+```{r}
+df |> 
+  select(-measurement, -value) |> 
+  distinct()
+#> # A tibble: 2 × 1
+#>   id   
+#>   <chr>
+#> 1 A    
+#> 2 B
+```
+
+```{r}
+df |> 
+  select(-measurement, -value) |> 
+  distinct() |> 
+  mutate(x = NA, y = NA, z = NA)
+#> # A tibble: 2 × 4
+#>   id    x     y     z    
+#>   <chr> <lgl> <lgl> <lgl>
+#> 1 A     NA    NA    NA   
+#> 2 B     NA    NA    NA
+```
+
+```{r}
+df <- tribble(
+  ~id, ~measurement, ~value,
+  "A",        "bp1",    100,
+  "A",        "bp1",    102,
+  "A",        "bp2",    120,
+  "B",        "bp1",    140, 
+  "B",        "bp2",    115
+)
+```
+
+```{r}
+df |>
+  pivot_wider(
+    names_from = measurement,
+    values_from = value
+  )
+#> Warning: Values from `value` are not uniquely identified; output will contain
+#> list-cols.
+#> • Use `values_fn = list` to suppress this warning.
+#> • Use `values_fn = {summary_fun}` to summarise duplicates.
+#> • Use the following dplyr code to identify duplicates.
+#>   {data} %>%
+#>   dplyr::group_by(id, measurement) %>%
+#>   dplyr::summarise(n = dplyr::n(), .groups = "drop") %>%
+#>   dplyr::filter(n > 1L)
+#> # A tibble: 2 × 3
+#>   id    bp1       bp2      
+#>   <chr> <list>    <list>   
+#> 1 A     <dbl [2]> <dbl [1]>
+#> 2 B     <dbl [1]> <dbl [1]>
+```
+
+```{r}
+df |> 
+  group_by(id, measurement) |> 
+  summarize(n = n(), .groups = "drop") |> 
+  filter(n > 1)
+#> # A tibble: 1 × 3
+#>   id    measurement     n
+#>   <chr> <chr>       <int>
+#> 1 A     bp1             2
+```

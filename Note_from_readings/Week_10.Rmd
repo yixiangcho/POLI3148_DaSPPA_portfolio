@@ -1,0 +1,553 @@
+---
+title: "Week_10"
+output: html_document
+date: "2023-11-09"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# **1 The tidy text format**
+
+```{r}
+text <- c("Because I could not stop for Death -",
+          "He kindly stopped for me -",
+          "The Carriage held but just Ourselves -",
+          "and Immortality")
+
+text
+#> [1] "Because I could not stop for Death -"  
+#> [2] "He kindly stopped for me -"            
+#> [3] "The Carriage held but just Ourselves -"
+#> [4] "and Immortality"
+```
+
+```{r}
+library(dplyr)
+text_df <- tibble(line = 1:4, text = text)
+
+text_df
+#> # A tibble: 4 × 2
+#>    line text                                  
+#>   <int> <chr>                                 
+#> 1     1 Because I could not stop for Death -  
+#> 2     2 He kindly stopped for me -            
+#> 3     3 The Carriage held but just Ourselves -
+#> 4     4 and Immortality
+```
+
+```{r}
+library(tidytext)
+
+text_df %>%
+  unnest_tokens(word, text)
+#> # A tibble: 20 × 2
+#>     line word   
+#>    <int> <chr>  
+#>  1     1 because
+#>  2     1 i      
+#>  3     1 could  
+#>  4     1 not    
+#>  5     1 stop   
+#>  6     1 for    
+#>  7     1 death  
+#>  8     2 he     
+#>  9     2 kindly 
+#> 10     2 stopped
+#> # … with 10 more rows
+```
+
+```{r}
+library(janeaustenr)
+library(dplyr)
+library(stringr)
+
+original_books <- austen_books() %>%
+  group_by(book) %>%
+  mutate(linenumber = row_number(),
+         chapter = cumsum(str_detect(text, 
+                                     regex("^chapter [\\divxlc]",
+                                           ignore_case = TRUE)))) %>%
+  ungroup()
+
+original_books
+#> # A tibble: 73,422 × 4
+#>    text                    book                linenumber chapter
+#>    <chr>                   <fct>                    <int>   <int>
+#>  1 "SENSE AND SENSIBILITY" Sense & Sensibility          1       0
+#>  2 ""                      Sense & Sensibility          2       0
+#>  3 "by Jane Austen"        Sense & Sensibility          3       0
+#>  4 ""                      Sense & Sensibility          4       0
+#>  5 "(1811)"                Sense & Sensibility          5       0
+#>  6 ""                      Sense & Sensibility          6       0
+#>  7 ""                      Sense & Sensibility          7       0
+#>  8 ""                      Sense & Sensibility          8       0
+#>  9 ""                      Sense & Sensibility          9       0
+#> 10 "CHAPTER 1"             Sense & Sensibility         10       1
+#> # … with 73,412 more rows
+```
+
+```{r}
+library(tidytext)
+tidy_books <- original_books %>%
+  unnest_tokens(word, text)
+
+tidy_books
+#> # A tibble: 725,055 × 4
+#>    book                linenumber chapter word       
+#>    <fct>                    <int>   <int> <chr>      
+#>  1 Sense & Sensibility          1       0 sense      
+#>  2 Sense & Sensibility          1       0 and        
+#>  3 Sense & Sensibility          1       0 sensibility
+#>  4 Sense & Sensibility          3       0 by         
+#>  5 Sense & Sensibility          3       0 jane       
+#>  6 Sense & Sensibility          3       0 austen     
+#>  7 Sense & Sensibility          5       0 1811       
+#>  8 Sense & Sensibility         10       1 chapter    
+#>  9 Sense & Sensibility         10       1 1          
+#> 10 Sense & Sensibility         13       1 the        
+#> # … with 725,045 more rows
+```
+
+```{r}
+data(stop_words)
+
+tidy_books <- tidy_books %>%
+  anti_join(stop_words)
+```
+
+```{r}
+tidy_books %>%
+  count(word, sort = TRUE) 
+#> # A tibble: 13,914 × 2
+#>    word       n
+#>    <chr>  <int>
+#>  1 miss    1855
+#>  2 time    1337
+#>  3 fanny    862
+#>  4 dear     822
+#>  5 lady     817
+#>  6 sir      806
+#>  7 day      797
+#>  8 emma     787
+#>  9 sister   727
+#> 10 house    699
+#> # … with 13,904 more rows
+```
+
+```{r}
+library(ggplot2)
+
+tidy_books %>%
+  count(word, sort = TRUE) %>%
+  filter(n > 600) %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(n, word)) +
+  geom_col() +
+  labs(y = NULL)
+```
+
+```{r}
+library(gutenbergr)
+
+hgwells <- gutenberg_download(c(35, 36, 5230, 159))
+```
+
+```{r}
+tidy_hgwells <- hgwells %>%
+  unnest_tokens(word, text) %>%
+  anti_join(stop_words)
+```
+
+```{r}
+tidy_hgwells %>%
+  count(word, sort = TRUE)
+#> # A tibble: 11,769 × 2
+#>    word       n
+#>    <chr>  <int>
+#>  1 time     454
+#>  2 people   302
+#>  3 door     260
+#>  4 heard    249
+#>  5 black    232
+#>  6 stood    229
+#>  7 white    222
+#>  8 hand     218
+#>  9 kemp     213
+#> 10 eyes     210
+#> # … with 11,759 more rows
+```
+
+```{r}
+bronte <- gutenberg_download(c(1260, 768, 969, 9182, 767))
+```
+
+```{r}
+tidy_bronte <- bronte %>%
+  unnest_tokens(word, text) %>%
+  anti_join(stop_words)
+```
+
+```{r}
+tidy_bronte %>%
+  count(word, sort = TRUE)
+#> # A tibble: 23,051 × 2
+#>    word       n
+#>    <chr>  <int>
+#>  1 time    1065
+#>  2 miss     855
+#>  3 day      827
+#>  4 hand     768
+#>  5 eyes     713
+#>  6 night    647
+#>  7 heart    638
+#>  8 looked   602
+#>  9 door     592
+#> 10 half     586
+#> # … with 23,041 more rows
+```
+
+```{r}
+library(tidyr)
+
+frequency <- bind_rows(mutate(tidy_bronte, author = "Brontë Sisters"),
+                       mutate(tidy_hgwells, author = "H.G. Wells"), 
+                       mutate(tidy_books, author = "Jane Austen")) %>% 
+  mutate(word = str_extract(word, "[a-z']+")) %>%
+  count(author, word) %>%
+  group_by(author) %>%
+  mutate(proportion = n / sum(n)) %>% 
+  select(-n) %>% 
+  pivot_wider(names_from = author, values_from = proportion) %>%
+  pivot_longer(`Brontë Sisters`:`H.G. Wells`,
+               names_to = "author", values_to = "proportion")
+
+frequency
+#> # A tibble: 57,820 × 4
+#>    word    `Jane Austen` author          proportion
+#>    <chr>           <dbl> <chr>                <dbl>
+#>  1 a          0.00000919 Brontë Sisters  0.0000319 
+#>  2 a          0.00000919 H.G. Wells      0.0000150 
+#>  3 a'most    NA          Brontë Sisters  0.0000159 
+#>  4 a'most    NA          H.G. Wells     NA         
+#>  5 aback     NA          Brontë Sisters  0.00000398
+#>  6 aback     NA          H.G. Wells      0.0000150 
+#>  7 abaht     NA          Brontë Sisters  0.00000398
+#>  8 abaht     NA          H.G. Wells     NA         
+#>  9 abandon   NA          Brontë Sisters  0.0000319 
+#> 10 abandon   NA          H.G. Wells      0.0000150 
+#> # … with 57,810 more rows
+```
+
+```{r}
+library(scales)
+
+# expect a warning about rows with missing values being removed
+ggplot(frequency, aes(x = proportion, y = `Jane Austen`, 
+                      color = abs(`Jane Austen` - proportion))) +
+  geom_abline(color = "gray40", lty = 2) +
+  geom_jitter(alpha = 0.1, size = 2.5, width = 0.3, height = 0.3) +
+  geom_text(aes(label = word), check_overlap = TRUE, vjust = 1.5) +
+  scale_x_log10(labels = percent_format()) +
+  scale_y_log10(labels = percent_format()) +
+  scale_color_gradient(limits = c(0, 0.001), 
+                       low = "darkslategray4", high = "gray75") +
+  facet_wrap(~author, ncol = 2) +
+  theme(legend.position="none") +
+  labs(y = "Jane Austen", x = NULL)
+```
+
+```{r}
+cor.test(data = frequency[frequency$author == "Brontë Sisters",],
+         ~ proportion + `Jane Austen`)
+#> 
+#>  Pearson's product-moment correlation
+#> 
+#> data:  proportion and Jane Austen
+#> t = 119.64, df = 10404, p-value < 2.2e-16
+#> alternative hypothesis: true correlation is not equal to 0
+#> 95 percent confidence interval:
+#>  0.7527837 0.7689611
+#> sample estimates:
+#>       cor 
+#> 0.7609907
+cor.test(data = frequency[frequency$author == "H.G. Wells",], 
+         ~ proportion + `Jane Austen`)
+#> 
+#>  Pearson's product-moment correlation
+#> 
+#> data:  proportion and Jane Austen
+#> t = 36.441, df = 6053, p-value < 2.2e-16
+#> alternative hypothesis: true correlation is not equal to 0
+#> 95 percent confidence interval:
+#>  0.4032820 0.4446006
+#> sample estimates:
+#>      cor 
+#> 0.424162
+```
+
+# **3 Analyzing word and document frequency: tf-idf**
+
+```{r}
+library(dplyr)
+library(janeaustenr)
+library(tidytext)
+
+book_words <- austen_books() %>%
+  unnest_tokens(word, text) %>%
+  count(book, word, sort = TRUE)
+
+total_words <- book_words %>% 
+  group_by(book) %>% 
+  summarize(total = sum(n))
+
+book_words <- left_join(book_words, total_words)
+
+book_words
+#> # A tibble: 40,379 × 4
+#>    book              word      n  total
+#>    <fct>             <chr> <int>  <int>
+#>  1 Mansfield Park    the    6206 160460
+#>  2 Mansfield Park    to     5475 160460
+#>  3 Mansfield Park    and    5438 160460
+#>  4 Emma              to     5239 160996
+#>  5 Emma              the    5201 160996
+#>  6 Emma              and    4896 160996
+#>  7 Mansfield Park    of     4778 160460
+#>  8 Pride & Prejudice the    4331 122204
+#>  9 Emma              of     4291 160996
+#> 10 Pride & Prejudice to     4162 122204
+#> # … with 40,369 more rows
+```
+
+```{r}
+library(ggplot2)
+
+ggplot(book_words, aes(n/total, fill = book)) +
+  geom_histogram(show.legend = FALSE) +
+  xlim(NA, 0.0009) +
+  facet_wrap(~book, ncol = 2, scales = "free_y")
+```
+
+```{r}
+freq_by_rank <- book_words %>% 
+  group_by(book) %>% 
+  mutate(rank = row_number(), 
+         `term frequency` = n/total) %>%
+  ungroup()
+
+freq_by_rank
+#> # A tibble: 40,379 × 6
+#>    book              word      n  total  rank `term frequency`
+#>    <fct>             <chr> <int>  <int> <int>            <dbl>
+#>  1 Mansfield Park    the    6206 160460     1           0.0387
+#>  2 Mansfield Park    to     5475 160460     2           0.0341
+#>  3 Mansfield Park    and    5438 160460     3           0.0339
+#>  4 Emma              to     5239 160996     1           0.0325
+#>  5 Emma              the    5201 160996     2           0.0323
+#>  6 Emma              and    4896 160996     3           0.0304
+#>  7 Mansfield Park    of     4778 160460     4           0.0298
+#>  8 Pride & Prejudice the    4331 122204     1           0.0354
+#>  9 Emma              of     4291 160996     4           0.0267
+#> 10 Pride & Prejudice to     4162 122204     2           0.0341
+#> # … with 40,369 more rows
+```
+
+```{r}
+freq_by_rank %>% 
+  ggplot(aes(rank, `term frequency`, color = book)) + 
+  geom_line(size = 1.1, alpha = 0.8, show.legend = FALSE) + 
+  scale_x_log10() +
+  scale_y_log10()
+```
+
+```{r}
+rank_subset <- freq_by_rank %>% 
+  filter(rank < 500,
+         rank > 10)
+
+lm(log10(`term frequency`) ~ log10(rank), data = rank_subset)
+#> 
+#> Call:
+#> lm(formula = log10(`term frequency`) ~ log10(rank), data = rank_subset)
+#> 
+#> Coefficients:
+#> (Intercept)  log10(rank)  
+#>     -0.6226      -1.1125
+```
+
+```{r}
+freq_by_rank %>% 
+  ggplot(aes(rank, `term frequency`, color = book)) + 
+  geom_abline(intercept = -0.62, slope = -1.1, 
+              color = "gray50", linetype = 2) +
+  geom_line(size = 1.1, alpha = 0.8, show.legend = FALSE) + 
+  scale_x_log10() +
+  scale_y_log10()
+```
+
+```{r}
+book_tf_idf <- book_words %>%
+  bind_tf_idf(word, book, n)
+
+book_tf_idf
+#> # A tibble: 40,379 × 7
+#>    book              word      n  total     tf   idf tf_idf
+#>    <fct>             <chr> <int>  <int>  <dbl> <dbl>  <dbl>
+#>  1 Mansfield Park    the    6206 160460 0.0387     0      0
+#>  2 Mansfield Park    to     5475 160460 0.0341     0      0
+#>  3 Mansfield Park    and    5438 160460 0.0339     0      0
+#>  4 Emma              to     5239 160996 0.0325     0      0
+#>  5 Emma              the    5201 160996 0.0323     0      0
+#>  6 Emma              and    4896 160996 0.0304     0      0
+#>  7 Mansfield Park    of     4778 160460 0.0298     0      0
+#>  8 Pride & Prejudice the    4331 122204 0.0354     0      0
+#>  9 Emma              of     4291 160996 0.0267     0      0
+#> 10 Pride & Prejudice to     4162 122204 0.0341     0      0
+#> # … with 40,369 more rows
+```
+
+```{r}
+book_tf_idf %>%
+  select(-total) %>%
+  arrange(desc(tf_idf))
+#> # A tibble: 40,379 × 6
+#>    book                word          n      tf   idf  tf_idf
+#>    <fct>               <chr>     <int>   <dbl> <dbl>   <dbl>
+#>  1 Sense & Sensibility elinor      623 0.00519  1.79 0.00931
+#>  2 Sense & Sensibility marianne    492 0.00410  1.79 0.00735
+#>  3 Mansfield Park      crawford    493 0.00307  1.79 0.00551
+#>  4 Pride & Prejudice   darcy       373 0.00305  1.79 0.00547
+#>  5 Persuasion          elliot      254 0.00304  1.79 0.00544
+#>  6 Emma                emma        786 0.00488  1.10 0.00536
+#>  7 Northanger Abbey    tilney      196 0.00252  1.79 0.00452
+#>  8 Emma                weston      389 0.00242  1.79 0.00433
+#>  9 Pride & Prejudice   bennet      294 0.00241  1.79 0.00431
+#> 10 Persuasion          wentworth   191 0.00228  1.79 0.00409
+#> # … with 40,369 more rows
+```
+
+```{r}
+library(forcats)
+
+book_tf_idf %>%
+  group_by(book) %>%
+  slice_max(tf_idf, n = 15) %>%
+  ungroup() %>%
+  ggplot(aes(tf_idf, fct_reorder(word, tf_idf), fill = book)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~book, ncol = 2, scales = "free") +
+  labs(x = "tf-idf", y = NULL)
+```
+
+```{r}
+library(gutenbergr)
+physics <- gutenberg_download(c(37729, 14725, 13476, 30155), 
+                              meta_fields = "author")
+```
+
+```{r}
+physics_words <- physics %>%
+  unnest_tokens(word, text) %>%
+  count(author, word, sort = TRUE)
+
+physics_words
+#> # A tibble: 12,671 × 3
+#>    author              word      n
+#>    <chr>               <chr> <int>
+#>  1 Galilei, Galileo    the    3760
+#>  2 Tesla, Nikola       the    3604
+#>  3 Huygens, Christiaan the    3553
+#>  4 Einstein, Albert    the    2993
+#>  5 Galilei, Galileo    of     2049
+#>  6 Einstein, Albert    of     2028
+#>  7 Tesla, Nikola       of     1737
+#>  8 Huygens, Christiaan of     1708
+#>  9 Huygens, Christiaan to     1207
+#> 10 Tesla, Nikola       a      1176
+#> # … with 12,661 more rows
+```
+
+```{r}
+plot_physics <- physics_words %>%
+  bind_tf_idf(word, author, n) %>%
+  mutate(author = factor(author, levels = c("Galilei, Galileo",
+                                            "Huygens, Christiaan", 
+                                            "Tesla, Nikola",
+                                            "Einstein, Albert")))
+
+plot_physics %>% 
+  group_by(author) %>% 
+  slice_max(tf_idf, n = 15) %>% 
+  ungroup() %>%
+  mutate(word = reorder(word, tf_idf)) %>%
+  ggplot(aes(tf_idf, word, fill = author)) +
+  geom_col(show.legend = FALSE) +
+  labs(x = "tf-idf", y = NULL) +
+  facet_wrap(~author, ncol = 2, scales = "free")
+```
+
+```{r}
+library(stringr)
+
+physics %>% 
+  filter(str_detect(text, "_k_")) %>% 
+  select(text)
+#> # A tibble: 7 × 1
+#>   text                                                                  
+#>   <chr>                                                                 
+#> 1 surface AB at the points AK_k_B. Then instead of the hemispherical    
+#> 2 would needs be that from all the other points K_k_B there should      
+#> 3 necessarily be equal to CD, because C_k_ is equal to CK, and C_g_ to  
+#> 4 the crystal at K_k_, all the points of the wave CO_oc_ will have      
+#> 5 O_o_ has reached K_k_. Which is easy to comprehend, since, of these   
+#> 6 CO_oc_ in the crystal, when O_o_ has arrived at K_k_, because it forms
+#> 7 ρ is the average density of the matter and _k_ is a constant connected
+```
+
+```{r}
+physics %>% 
+  filter(str_detect(text, "RC")) %>% 
+  select(text)
+#> # A tibble: 44 × 1
+#>    text                                                                  
+#>    <chr>                                                                 
+#>  1 line RC, parallel and equal to AB, to be a portion of a wave of light,
+#>  2 represents the partial wave coming from the point A, after the wave RC
+#>  3 be the propagation of the wave RC which fell on AB, and would be the  
+#>  4 transparent body; seeing that the wave RC, having come to the aperture
+#>  5 incident rays. Let there be such a ray RC falling upon the surface    
+#>  6 CK. Make CO perpendicular to RC, and across the angle KCO adjust OK,  
+#>  7 the required refraction of the ray RC. The demonstration of this is,  
+#>  8 explaining ordinary refraction. For the refraction of the ray RC is   
+#>  9 29. Now as we have found CI the refraction of the ray RC, similarly   
+#> 10 the ray _r_C is inclined equally with RC, the line C_d_ will          
+#> # … with 34 more rows
+```
+
+```{r}
+mystopwords <- tibble(word = c("eq", "co", "rc", "ac", "ak", "bn", 
+                                   "fig", "file", "cg", "cb", "cm",
+                               "ab", "_k", "_k_", "_x"))
+
+physics_words <- anti_join(physics_words, mystopwords, 
+                           by = "word")
+
+plot_physics <- physics_words %>%
+  bind_tf_idf(word, author, n) %>%
+  mutate(word = str_remove_all(word, "_")) %>%
+  group_by(author) %>% 
+  slice_max(tf_idf, n = 15) %>%
+  ungroup() %>%
+  mutate(word = fct_reorder(word, tf_idf)) %>%
+  mutate(author = factor(author, levels = c("Galilei, Galileo",
+                                            "Huygens, Christiaan",
+                                            "Tesla, Nikola",
+                                            "Einstein, Albert")))
+
+ggplot(plot_physics, aes(tf_idf, word, fill = author)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~author, ncol = 2, scales = "free") +
+  labs(x = "tf-idf", y = NULL)
+```

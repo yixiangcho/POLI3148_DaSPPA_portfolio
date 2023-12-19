@@ -49,7 +49,6 @@ scientific research shows that 10+10=`r10+10.`\
 #install.packages("tinytex")
 #tinytex::install_tinytex()
 ```
-asljdfshfdejfghf
-dfvhbsjaifhvbjsao
-hgfjiwfhugaduijswoqpifhsdug\
+
+asljdfshfdejfghf dfvhbsjaifhvbjsao hgfjiwfhugaduijswoqpifhsdug\
 adjsdvbhadkfbhv

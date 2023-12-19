@@ -51,3 +51,4 @@ text_body <- doc_html %>%
 
 file_name_out <- file.path(file_repo_out, str_c(file_names[i], ".txt"))
 write(text_body, file_name_out)
+

@@ -1,0 +1,760 @@
+---
+title: "Week_9"
+output: html_document
+date: "2023-11-2"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Chapter 10 Other Graphs
+
+```{r}
+# basic 3-D scatterplot
+library(scatterplot3d)
+with(mtcars, {
+   scatterplot3d(x = disp,
+                 y = wt, 
+                 z = mpg,
+                 main="3-D Scatterplot Example 1")
+})
+```
+
+```{r}
+library(scatterplot3d)
+with(mtcars, {
+  scatterplot3d(x = disp, 
+                y = wt, 
+                z = mpg, 
+                # filled blue circles
+                color="blue", 
+                pch = 19, 
+                # lines to the horizontal plane
+                type = "h",
+                main = "3-D Scatterplot Example 2",
+                xlab = "Displacement (cu. in.)",
+                ylab = "Weight (lb/1000)",
+                zlab = "Miles/(US) Gallon")
+})
+```
+
+```{r}
+library(scatterplot3d)
+with(mtcars, {
+  s3d <- scatterplot3d(
+    x = disp, 
+    y = wt, 
+    z = mpg,
+    color = "blue", 
+    pch = 19,      
+    type = "h",
+    main = "3-D Scatterplot Example 3",
+    xlab = "Displacement (cu. in.)",
+    ylab = "Weight (lb/1000)",
+    zlab = "Miles/(US) Gallon")
+  
+  # convert 3-D coords to 2D projection
+  s3d.coords <- s3d$xyz.convert(disp, wt, mpg) 
+  
+  # plot text with 50% shrink and place to right of points
+  text(s3d.coords$x, 
+       s3d.coords$y,   
+       labels = row.names(mtcars),  
+       cex = .5, 
+       pos = 4)
+})
+```
+
+```{r}
+library(scatterplot3d)
+
+# create column indicating point color
+mtcars$pcolor[mtcars$cyl == 4] <- "red"
+mtcars$pcolor[mtcars$cyl == 6] <- "blue"
+mtcars$pcolor[mtcars$cyl == 8] <- "darkgreen"
+
+with(mtcars, {
+    s3d <- scatterplot3d(
+      x = disp, 
+      y = wt, 
+      z = mpg,
+      color = pcolor, 
+      pch = 19, 
+      type = "h", 
+      lty.hplot = 2, 
+      scale.y = .75,
+      main = "3-D Scatterplot Example 4",
+      xlab = "Displacement (cu. in.)",
+      ylab = "Weight (lb/1000)",
+      zlab = "Miles/(US) Gallon")
+    
+     s3d.coords <- s3d$xyz.convert(disp, wt, mpg)
+     text(s3d.coords$x, 
+          s3d.coords$y, 
+          labels = row.names(mtcars), 
+          pos = 4, 
+          cex = .5)  
+     
+# add the legend
+legend(# top left and indented
+       "topleft", inset=.05,
+       # suppress legend box, shrink text 50%
+       bty="n", cex=.5, 
+       title="Number of Cylinders",
+       c("4", "6", "8"), 
+       fill=c("red", "blue", "darkgreen"))
+})
+```
+
+```{r}
+library(car)
+library(rgl)
+with(mtcars,
+     scatter3d(disp, wt, mpg))
+```
+
+```{r}
+library(car)
+with(mtcars,
+     scatter3d(disp, wt, mpg,
+               axis.col = c("black", "black", "black"),
+               groups = factor(am),
+               surface.col = c("red", "blue"),
+               col = c("red", "blue"),
+               text.col = "grey", 
+               id = list(n=nrow(mtcars), 
+                         labels=rownames(mtcars)),
+               surface = FALSE,
+               xlab = "Displacement",
+               ylab = "Weight",
+               zlab = "Miles Per Gallon"))
+```
+
+```{r}
+# create a bubble plot
+data(mtcars)
+library(ggplot2)
+ggplot(mtcars, 
+       aes(x = wt, y = mpg, size = hp)) +
+  geom_point()
+```
+
+```{r}
+# create a bubble plot with modifications
+ggplot(mtcars, 
+       aes(x = wt, y = mpg, size = hp)) +
+  geom_point(alpha = .5, 
+             fill="cornflowerblue", 
+             color="black", 
+             shape=21) +
+  scale_size_continuous(range = c(1, 14)) +
+  labs(title = "Auto mileage by weight and horsepower",
+       subtitle = "Motor Trend US Magazine (1973-74 models)",
+       x = "Weight (1000 lbs)",
+       y = "Miles/(US) gallon",
+       size = "Gross horsepower") 
+```
+
+```{r}
+# create a biplot
+# load data
+data(mtcars)
+
+# fit a principal components model
+fit <- prcomp(x = mtcars, 
+              center = TRUE, 
+              scale = TRUE)
+
+# plot the results
+library(factoextra)
+fviz_pca(fit, 
+         repel = TRUE, 
+         labelsize = 3) + 
+  theme_bw() +
+  labs(title = "Biplot of mtcars data")
+```
+
+```{r}
+# input data
+library(readr)
+titanic <- read_csv("titanic.csv")
+
+# summarize data
+library(dplyr)
+titanic_table <- titanic %>%
+  group_by(Class, Sex, Survived) %>%
+  count()
+
+# convert survived to a factor with labels
+titanic_table$Survived <- factor(titanic_table$Survived, 
+                                 levels = c("Yes", "No"))
+# view the first 6 cases
+head(titanic_table)
+```
+
+```{r}
+library(ggalluvial)
+ggplot(titanic_table,
+       aes(axis1 = Class,
+           axis2 = Sex,
+           axis3 = Survived,
+           y = n)) +
+  geom_alluvium(aes(fill = Class)) +
+  geom_stratum() +
+  geom_text(stat = "stratum", 
+            aes(label = after_stat(stratum)))
+```
+
+```{r}
+library(dplyr)
+data(mtcars)
+mtcars_table <- mtcars %>%
+  mutate(am = factor(am, labels = c("Auto", "Man")),
+         cyl = factor(cyl),
+         gear = factor(gear),
+         carb = factor(carb)) %>%
+  group_by(cyl, gear, carb, am) %>%
+  count()
+
+head(mtcars_table)
+```
+
+```{r}
+ggplot(mtcars_table,
+       aes(axis1 = carb,
+           axis2 = cyl,
+           axis3 = gear,
+           axis4 = am,
+           y = n)) +
+  geom_alluvium(aes(fill = carb), color="black") +
+  geom_stratum(alpha=.8) +
+  geom_text(stat = "stratum", 
+            aes(label = after_stat(stratum))) + 
+  scale_x_discrete(limits = c("Carburetors", "Cylinders", 
+                              "Gears", "Transmission"),
+                   expand = c(.1, .1)) +
+  # scale_fill_brewer(palette="Paired") +
+  labs(title = "Mtcars data",
+       subtitle = "stratified by carb, cyl, gear, and am",
+       y = "Frequency") +
+  theme_minimal() +
+  theme(legend.position = "none") 
+```
+
+```{r}
+# create a heatmap
+data(mtcars)
+library(superheat)
+superheat(mtcars, scale = TRUE)
+```
+
+```{r}
+# sorted heat map
+superheat(mtcars,
+          scale = TRUE,
+          left.label.text.size=3,
+          bottom.label.text.size=3,
+          bottom.label.size = .05,
+          row.dendrogram = TRUE )
+```
+
+```{r}
+# create heatmap for gapminder data (Asia)
+library(tidyr)
+library(dplyr)
+
+# load data
+data(gapminder, package="gapminder")
+
+# subset Asian countries
+asia <- gapminder %>%
+  filter(continent == "Asia") %>%
+  select(year, country, lifeExp)
+
+# convert to long to wide format
+plotdata <- pivot_wider(asia, names_from = year, 
+                        values_from = lifeExp)
+
+# save country as row names
+plotdata <- as.data.frame(plotdata)
+row.names(plotdata) <- plotdata$country
+plotdata$country <- NULL
+
+# row order
+sort.order <- order(plotdata$"2007")
+
+# color scheme
+library(RColorBrewer)
+colors <- rev(brewer.pal(5, "Blues"))
+
+
+# create the heat map
+superheat(plotdata,
+          scale = FALSE,
+          left.label.text.size=3,
+          bottom.label.text.size=3,
+          bottom.label.size = .05,
+          heat.pal = colors,
+          order.rows = sort.order,
+          title = "Life Expectancy in Asia")
+```
+
+```{r}
+# create a radar chart
+
+# prepare data
+data(msleep, package = "ggplot2")
+library(ggplot2)
+library(ggradar)
+library(scales)
+library(dplyr)
+
+plotdata <- msleep %>%
+  filter(name %in% c("Cow", "Dog", "Pig")) %>%
+  select(name, sleep_total, sleep_rem, 
+         sleep_cycle, brainwt, bodywt) %>%
+  rename(group = name) %>%
+  mutate_at(vars(-group),
+            funs(rescale))
+plotdata
+```
+
+```{r}
+# generate radar chart
+ggradar(plotdata, 
+        grid.label.size = 4,
+        axis.label.size = 4, 
+        group.point.size = 5,
+        group.line.width = 1.5,
+        legend.text.size= 10) +
+  labs(title = "Mammals, size, and sleep")
+```
+
+```{r}
+library(GGally)
+
+# prepare data
+data(msleep, package="ggplot2")
+library(dplyr)
+df <- msleep %>% 
+  mutate(log_brainwt = log(brainwt),
+         log_bodywt = log(bodywt)) %>%
+  select(log_brainwt, log_bodywt, sleep_total, sleep_rem)
+ 
+
+# create a scatterplot matrix
+ggpairs(df)
+```
+
+```{r}
+# custom function for density plot
+my_density <- function(data, mapping, ...){
+  ggplot(data = data, mapping = mapping) + 
+    geom_density(alpha = 0.5,
+                 fill = "cornflowerblue", ...)
+}
+
+# custom function for scatterplot
+my_scatter <- function(data, mapping, ...){
+  ggplot(data = data, mapping = mapping) + 
+    geom_point(alpha = 0.5,
+               color = "cornflowerblue") + 
+    geom_smooth(method=lm, 
+                se=FALSE, ...)
+}
+
+
+# create scatterplot matrix
+ggpairs(df, 
+        lower=list(continuous = my_scatter), 
+        diag = list(continuous = my_density)) +
+  labs(title = "Mammal size and sleep characteristics") +
+  theme_bw()
+```
+
+```{r}
+# create company income statement
+category <- c("Sales", "Services", "Fixed Costs", 
+              "Variable Costs", "Taxes")
+amount <- c(101000, 52000, -23000, -15000, -10000)
+income <- data.frame(category, amount) 
+```
+
+```{r}
+# create waterfall chart
+library(ggplot2)
+library(waterfalls)
+waterfall(income) 
+```
+
+```{r}
+# create waterfall chart with total column
+waterfall(income, 
+          calc_total=TRUE, 
+          total_axis_text = "Net",
+          total_rect_text_color="black",
+          total_rect_color="goldenrod1") +
+  scale_y_continuous(label=scales::dollar) +
+  labs(title = "West Coast Profit and Loss", 
+       subtitle = "Year 2017",
+       y="", 
+       x="") +
+  theme_minimal() 
+```
+
+```{r}
+# install packages for text mining
+install.packages(c("tm", "SnowballC", 
+                   "wordcloud", "RColorBrewer", 
+                   "RCurl", "XML"))
+```
+
+```{r}
+# create a word cloud
+script <- "http://www.sthda.com/upload/rquery_wordcloud.r"
+source(script)
+res<-rquery.wordcloud("JFKspeech.txt", 
+                      type ="file", 
+                      lang = "english",
+                      textStemming=FALSE,
+                      min.freq=3, 
+                      max.words=200)
+```
+
+# Chapter 11 Customizing Graphs
+
+```{r}
+# customize numerical x and y axes
+library(ggplot2)
+ggplot(mpg, aes(x=displ, y=hwy)) +
+  geom_point() +
+  scale_x_continuous(breaks = seq(1, 7, 1), 
+                     limits=c(1, 7)) +
+  scale_y_continuous(breaks = seq(10, 45, 5), 
+                     limits=c(10, 45))
+```
+
+```{r}
+seq(1, 8, 2)
+
+c(1, 3, 5, 7)
+```
+
+```{r}
+# create some data
+set.seed(1234)
+df <- data.frame(xaxis = rnorm(50, 100000, 50000),
+                 yaxis = runif(50, 0, 1),
+                 pointsize = rnorm(50, 1000, 1000))
+library(ggplot2)
+
+# plot the axes and legend with formats
+ggplot(df, aes(x = xaxis, 
+               y = yaxis, 
+               size=pointsize)) + 
+  geom_point(color = "cornflowerblue",
+             alpha = .6) +
+  scale_x_continuous(label = scales::comma) +
+  scale_y_continuous(label = scales::percent) +
+  scale_size(range = c(1,10), # point size range
+             label = scales::dollar)
+```
+
+```{r}
+library(ggplot2)
+# customize categorical x axis
+ggplot(mpg, aes(x = class)) +
+  geom_bar(fill = "steelblue") +
+  scale_x_discrete(limits = c("pickup", "suv", "minivan", 
+                             "midsize", "compact", "subcompact", 
+                             "2seater"),
+                   labels = c("Pickup\nTruck", 
+                              "Sport Utility\nVehicle", 
+                              "Minivan", "Mid-size", "Compact", 
+                              "Subcompact", "2-Seater"))
+```
+
+```{r}
+library(ggplot2)
+# customize date scale on x axis
+ggplot(economics, aes(x = date, y = unemploy)) +
+  geom_line(color="darkgreen") +
+  scale_x_date(date_breaks = "5 years",
+               date_labels = "%b-%y")
+```
+
+```{r}
+# specify fill color manually
+library(ggplot2)
+ggplot(diamonds, aes(x = cut, fill = clarity)) +
+  geom_bar() +
+  scale_fill_manual(values = c("darkred", "steelblue", 
+                               "darkgreen", "gold",
+                               "brown", "purple", 
+                               "grey", "khaki4"))
+```
+
+```{r}
+# use an ColorBrewer fill palette
+ggplot(diamonds, aes(x = cut, fill = clarity)) +
+  geom_bar() +
+  scale_fill_brewer(palette = "Dark2") 
+```
+
+```{r}
+# Use a viridis fill palette
+ggplot(diamonds, aes(x = cut, fill = clarity)) +
+  geom_bar() + 
+  scale_fill_viridis_d()
+```
+
+```{r}
+# one time install
+install.packages("extrafont")
+library(extrafont)
+font_import()
+
+# see what fonts are now available
+fonts()
+```
+
+```{r}
+# specify new font
+library(extrafont)
+ggplot(mpg, aes(x = displ, y=hwy)) +
+  geom_point() +
+  labs(title = "Diplacement by Highway Mileage",
+       subtitle = "MPG dataset") +
+  theme(text = element_text(size = 16, family = "Comic Sans MS"))
+```
+
+```{r}
+# place legend on top
+ggplot(mpg, 
+       aes(x = displ, y=hwy, color = class)) +
+  geom_point(size = 4) +
+  labs(title = "Diplacement by Highway Mileage") + 
+  theme_minimal() +
+  theme(legend.position = "top") 
+```
+
+```{r}
+# change the default legend title
+ggplot(mpg, 
+       aes(x = displ, y=hwy, color = class)) +
+  geom_point(size = 4) +
+  labs(title = "Diplacement by Highway Mileage",
+       color = "Automobile\nClass") + 
+  theme_minimal() +
+  theme(legend.title.align=0.5)
+```
+
+```{r}
+# add plot labels
+ggplot(mpg, 
+       aes(x = displ, y=hwy, 
+           color = class,
+           shape = factor(year))) +
+  geom_point(size = 3, 
+             alpha = .5) +
+  labs(title = "Mileage by engine displacement",
+       subtitle = "Data from 1999 and 2008",
+       caption = "Source: EPA (http://fueleconomy.gov)",
+       x = "Engine displacement (litres)",
+       y = "Highway miles per gallon",
+       color = "Car Class",
+       shape = "Year") + 
+  theme_minimal()
+```
+
+```{r}
+# basic scatterplot
+data(mtcars)
+ggplot(mtcars, aes(x = wt, y = mpg)) +
+  geom_point()
+```
+
+```{r}
+# scatterplot with labels
+data(mtcars)
+ggplot(mtcars, aes(x = wt, y = mpg)) +
+  geom_point() +
+  geom_text(label = row.names(mtcars))
+```
+
+```{r}
+# scatterplot with non-overlapping labels
+data(mtcars)
+library(ggrepel)
+ggplot(mtcars, aes(x = wt, y = mpg)) +
+  geom_point() +
+  geom_text_repel(label = row.names(mtcars), 
+                  size=3)
+```
+
+```{r}
+annotate("text", 
+         x, y, 
+         label = "Some text", 
+         color = "colorname", 
+         size=textsize)
+```
+
+```{r}
+# scatterplot with explanatory text
+data(mtcars)
+library(ggrepel)
+txt <- paste("The relationship between car weight",
+              "and mileage appears to be roughly linear",
+              sep = "\n")
+ggplot(mtcars, aes(x = wt, y = mpg)) +
+  geom_point(color = "red") +
+  geom_text_repel(label = row.names(mtcars), 
+                  size=3) +
+  ggplot2::annotate("text", 
+                    6, 30, 
+                    label=txt,
+                    color = "red",
+                    hjust = 1) +
+  theme_bw()
+```
+
+```{r}
+# add annotation line and text label
+min_cty <- min(mpg$cty)
+mean_hwy <- mean(mpg$hwy)
+ggplot(mpg, 
+       aes(x = cty, y=hwy, color=drv)) +
+  geom_point(size = 3) +
+  geom_hline(yintercept = mean_hwy,
+             color = "darkred",
+             linetype = "dashed") +
+  ggplot2::annotate("text", 
+           min_cty, 
+           mean_hwy + 1, 
+           label = "Mean",
+           color = "darkred") +
+  labs(title = "Mileage by drive type",
+       x = "City miles per gallon",
+       y = "Highway miles per gallon",
+       color = "Drive")
+```
+
+```{r}
+# highlight a set of points
+library(ggplot2)
+library(gghighlight)
+ggplot(mpg, aes(x = cty, y = hwy)) +
+  geom_point(color = "red",
+             size=2) +
+  gghighlight(class == "midsize")
+```
+
+```{r}
+# create graph
+data(Salaries, package = "carData")
+p <- ggplot(Salaries, aes(x = rank, fill = sex)) +
+  geom_bar() +
+  facet_wrap(~discipline) +
+  labs(title = "Academic Rank by Gender and Discipline",
+       x = "Rank",
+       y = "Frequency",
+       fill = "Gender")
+p
+```
+
+```{r}
+p +
+  theme(text = element_text(color = "navy"),
+        panel.background = element_rect(fill = "white"),
+        panel.grid.major.y = element_line(color = "grey"),
+        panel.grid.minor.y = element_line(color = "grey", 
+                                          linetype = "dashed"),
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        strip.background = element_rect(fill = "white", color="grey"))
+```
+
+```{r}
+# create basic plot
+library(ggplot2)
+p <- ggplot(mpg, 
+            aes(x = displ, y=hwy, 
+                color = class)) +
+  geom_point(size = 3, 
+             alpha = .5) +
+  labs(title = "Mileage by engine displacement",
+       subtitle = "Data from 1999 and 2008",
+       caption = "Source: EPA (http://fueleconomy.gov)",
+       x = "Engine displacement (litres)",
+       y = "Highway miles per gallon",
+       color = "Car Class") 
+
+# display graph
+p
+```
+
+```{r}
+# add fivethirtyeight theme
+p + theme_fivethirtyeight()
+```
+
+```{r}
+# add wsj theme
+p + theme_wsj(base_size=8)
+```
+
+```{r}
+# add few theme
+p + theme_few() + scale_color_few()
+```
+
+```{r}
+# add few theme
+library(hrbrthemes)
+p + theme_ipsum()
+```
+
+```{r}
+# one time install
+install.packages("remotes")
+remotes::install_github('cttobin/ggthemr')
+```
+
+```{r}
+# set graphs to the flat dark theme
+library(ggthemr)
+ggthemr("flat dark")
+p
+```
+
+```{r}
+ggthemr_reset()
+```
+
+```{r}
+data(Salaries, package = "carData")
+library(ggplot2)
+library(patchwork)
+
+# boxplot of salary by sex
+p1 <- ggplot(Salaries, aes(x = sex, y = salary, fill=sex)) +
+  geom_boxplot()
+
+# scatterplot of salary by experience and sex
+p2 <- ggplot(Salaries, 
+             aes(x = yrs.since.phd, y = salary, color=sex)) +
+  geom_point()
+
+# barchart of rank and sex
+p3 <- ggplot(Salaries, aes(x = rank, fill = sex)) +
+    geom_bar()
+
+# combine the graphs and tweak the theme and colors
+(p1 | p2)/p3 +
+  plot_annotation(title = "Salaries for college professors") &
+  theme_minimal() &
+  scale_fill_viridis_d() &
+  scale_color_viridis_d()
+```

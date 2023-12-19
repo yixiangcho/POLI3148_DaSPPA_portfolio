@@ -40,7 +40,7 @@ library(kableExtra)  # Package for data presentation at Rmarkdown
 ## Load Data
 
 ```{r, results="asis"}
-d = read_rds("Lec_10/1_Text_Mining/data/data_ce_speech_article.rds")
+d = read_rds("data/data_ce_speech_article.rds")
 
 dim(d) # Get dimension of dataset d
 names(d) # Get column names of dataset d

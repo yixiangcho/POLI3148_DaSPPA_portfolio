@@ -65,3 +65,4 @@ d_raw <- read_rds("data_out/data_ce_speech_article.rds")
 
 # Check document lengths (quite long, no NA. Looks alright.)
 summary(nchar(d_raw$text))
+

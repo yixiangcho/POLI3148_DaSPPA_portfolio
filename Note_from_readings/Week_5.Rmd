@@ -1,0 +1,414 @@
+---
+title: "Week_5"
+output: html_document
+date: "2023-10-5"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# setup
+
+```{r}
+#CRAN_pkgs <- c("ggplot2", "dplyr", "tidyr", "mosaicData", 
+#               "carData", "VIM", "scales", "treemapify", 
+#               "gapminder","sf", "tidygeocoder",  "mapview", 
+#               "ggmap", "osmdata", "choroplethr", 
+#               "choroplethrMaps", "lubridate", "CGPfunctions", 
+#               "ggcorrplot", "visreg", "gcookbook", "forcats", 
+#               "survival", "survminer", "car", "rgl", 
+#               "ggalluvial", "ggridges", "GGally", "superheat", 
+#               "waterfalls", "factoextra","networkD3", 
+#               "ggthemes", "patchwork", "hrbrthemes", "ggpol", 
+#               "quantmod", "gghighlight", "leaflet", "ggiraph", 
+#               "rbokeh", "ggalt")
+#install.packages(CRAN_pkgs)
+```
+
+# chapter 2 Data Preparation
+
+```{r}
+library(readr)
+
+# import data from a comma delimited file
+Salaries <- read_csv("data/Salaries.csv")
+
+# import data from a tab delimited file
+Salaries <- read_tsv("data/Salaries.txt")
+```
+
+```{r}
+library(readxl)
+
+# import data from an Excel workbook
+Salaries <- read_excel("data/Salaries.xlsx", sheet=1)
+```
+
+```{r}
+library(haven)
+
+# import data from Stata
+Salaries <- read_dta("data/Salaries.dta")
+
+# import data from SPSS
+Salaries <- read_sav("data/Salaries.sav")
+
+# import data from SAS
+Salaries <- read_sas("data/Salaries.sas7bdat")
+```
+
+```{r}
+library(dplyr)
+
+# keep the variables name, height, and gender
+newdata <- select(starwars, name, height, gender)
+
+# keep the variables name and all variables 
+# between mass and species inclusive
+newdata <- select(starwars, name, mass:species)
+
+# keep all variables except birth_year and gender
+newdata <- select(starwars, -birth_year, -gender)
+```
+
+```{r}
+library(dplyr)
+
+# select females
+newdata <- filter(starwars, 
+                  gender == "female")
+
+# select females that are from Alderaan
+#newdata <- select(starwars, 
+#                  gender == "female" & 
+#                  homeworld == "Alderaan")
+
+
+# select individuals that are from Alderaan, Coruscant, or Endor
+#newdata <- select(starwars, 
+#                  homeworld == "Alderaan" | 
+#                  homeworld == "Coruscant" | 
+#                  homeworld == "Endor")
+
+# this can be written more succinctly as
+#newdata <- select(starwars, 
+#                  homeworld %in% 
+#                    c("Alderaan", "Coruscant", "Endor"))
+```
+
+```{r}
+library(dplyr)
+
+# convert height in centimeters to inches, 
+# and mass in kilograms to pounds
+newdata <- mutate(starwars, 
+                  height = height * 0.394,
+                  mass   = mass   * 2.205)
+```
+
+```{r}
+library(dplyr)
+
+# if height is greater than 180 then heightcat = "tall", 
+# otherwise heightcat = "short"
+
+newdata <- mutate(starwars, 
+                  heightcat = ifelse(height > 180, 
+                                     "tall", 
+                                     "short"))
+                  
+# convert any eye color that is not black, blue or brown, to other.
+newdata <- mutate(starwars, 
+                  eye_color = ifelse(eye_color %in% 
+                                     c("black", "blue", "brown"),
+                                     eye_color,
+                                     "other"))
+                  
+# set heights greater than 200 or less than 75 to missing
+newdata <- mutate(starwars, 
+                  height = ifelse(height < 75 | height > 200,
+                                     NA,
+                                     height))
+```
+
+```{r}
+library(dplyr)
+
+# calculate mean height and mass
+newdata <- summarize(starwars, 
+                     mean_ht = mean(height, na.rm=TRUE), 
+                     mean_mass = mean(mass, na.rm=TRUE))
+newdata
+```
+
+```{r}
+# calculate mean height and weight by gender
+newdata <- group_by(starwars, gender)
+newdata <- summarize(newdata, 
+                     mean_ht = mean(height, na.rm=TRUE), 
+                     mean_wt = mean(mass, na.rm=TRUE))
+newdata
+```
+
+```{r}
+library(dplyr)
+
+# calculate the mean height for women by species
+newdata <- filter(starwars, 
+                  gender == "female")
+#newdata <- group_by(species)
+newdata <- summarize(newdata, 
+                     mean_ht = mean(height, na.rm = TRUE))
+
+# this can be written as more succinctly as
+newdata <- starwars %>%
+  filter(gender == "female") %>%
+  group_by(species) %>%
+  summarize(mean_ht = mean(height, na.rm = TRUE))
+```
+
+```{r}
+df <- data.frame(
+  dob = c("11/10/1963", "Jan-23-91", "12:1:2001")
+)
+# view struction of data frame
+str(df) 
+```
+
+```{r}
+library(lubridate)
+# convert dob from character to date
+df$dob <- mdy(df$dob)
+str(df)
+```
+
+```{r}
+# convert wide dataset to long dataset
+library(tidyr)
+#long_data <- pivot_longer(wide_data,
+#                          cols = c("height", "weight"),
+#                          names_to = "variable", 
+#                          values_to ="value")
+```
+
+```{r}
+# convert long dataset to wide dataset
+#library(tidyr)
+#wide_data <- pivot_wider(long_data,
+#                         names_from = "variable",
+#                         values_from = "value")
+```
+
+```{r}
+data(msleep, package="ggplot2")
+
+# what is the proportion of missing data for each variable?
+pctmiss <- colSums(is.na(msleep))/nrow(msleep)
+round(pctmiss, 2)
+```
+
+```{r}
+# Create a dataset containing genus, vore, and conservation.
+# Delete any rows containing missing data.
+newdata <- select(msleep, genus, vore, conservation)
+newdata <- na.omit(newdata)
+```
+
+```{r}
+# Impute missing values using the 5 nearest neighbors
+library(VIM)
+newdata <- kNN(msleep, k=5)
+```
+
+# Chapter 3 Introduction to ggplot2
+
+```{r}
+# load the data
+url <- "https://tinyurl.com/mtktm8e5"
+insurance <- read.csv(url)
+```
+
+```{r}
+# create an obesity variable
+insurance$obese <- ifelse(insurance$bmi >= 30, 
+                          "obese", "not obese")
+```
+
+```{r}
+# specify dataset and mapping
+library(ggplot2)
+ggplot(data = insurance,
+       mapping = aes(x = age, y = expenses))
+```
+
+```{r}
+# add points
+ggplot(data = insurance,
+       mapping = aes(x = age, y = expenses)) +
+  geom_point()
+```
+
+```{r}
+# make points blue, larger, and semi-transparent
+ggplot(data = insurance,
+       mapping = aes(x = age, y = expenses)) +
+  geom_point(color = "cornflowerblue",
+             alpha = .7,
+             size = 2)
+```
+
+```{r}
+# add a line of best fit.
+ggplot(data = insurance,
+       mapping = aes(x = age, y = expenses)) +
+  geom_point(color = "cornflowerblue",
+             alpha = .5,
+             size = 2) +
+  geom_smooth(method = "lm")
+```
+
+```{r}
+# indicate sex using color
+ggplot(data = insurance,
+       mapping = aes(x = age, 
+                     y = expenses,
+                     color = smoker)) +
+  geom_point(alpha = .5,
+             size = 2) +
+  geom_smooth(method = "lm", 
+              se = FALSE, 
+              size = 1.5)
+```
+
+```{r}
+# modify the x and y axes and specify the colors to be used
+ggplot(data = insurance,
+       mapping = aes(x = age, 
+                     y = expenses,
+                     color = smoker)) +
+  geom_point(alpha = .5,
+             size = 2) +
+  geom_smooth(method = "lm", 
+              se = FALSE, 
+              size = 1.5) +
+  scale_x_continuous(breaks = seq(0, 70, 10)) +
+  scale_y_continuous(breaks = seq(0, 60000, 20000),
+                     label = scales::dollar) +
+  scale_color_manual(values = c("indianred3", 
+                                "cornflowerblue"))
+```
+
+```{r}
+# reproduce plot for each obsese and non-obese individuals
+ggplot(data = insurance,
+       mapping = aes(x = age, 
+                     y = expenses,
+                     color = smoker)) +
+  geom_point(alpha = .5) +
+  geom_smooth(method = "lm", 
+              se = FALSE) +
+  scale_x_continuous(breaks = seq(0, 70, 10)) +
+  scale_y_continuous(breaks = seq(0, 60000, 20000),
+                     label = scales::dollar) +
+  scale_color_manual(values = c("indianred3", 
+                                "cornflowerblue")) +
+  facet_wrap(~obese)
+```
+
+```{r}
+# add informative labels
+ggplot(data = insurance,
+       mapping = aes(x = age, 
+                     y = expenses,
+                     color = smoker)) +
+  geom_point(alpha = .5) +
+  geom_smooth(method = "lm", 
+              se = FALSE) +
+  scale_x_continuous(breaks = seq(0, 70, 10)) +
+  scale_y_continuous(breaks = seq(0, 60000, 20000),
+                     label = scales::dollar) +
+  scale_color_manual(values = c("indianred3", 
+                                "cornflowerblue")) +
+  facet_wrap(~obese) +
+  labs(title = "Relationship between patient demographics and medical costs",
+       subtitle = "US Census Bureau 2013",
+       caption = "source: http://mosaic-web.org/",
+       x = " Age (years)",
+       y = "Annual expenses",
+       color = "Smoker?")
+```
+
+```{r}
+# use a minimalist theme
+ggplot(data = insurance,
+       mapping = aes(x = age, 
+                     y = expenses,
+                     color = smoker)) +
+  geom_point(alpha = .5) +
+  geom_smooth(method = "lm", 
+              se = FALSE) +
+  scale_x_continuous(breaks = seq(0, 70, 10)) +
+  scale_y_continuous(breaks = seq(0, 60000, 20000),
+                     label = scales::dollar) +
+  scale_color_manual(values = c("indianred3", 
+                                "cornflowerblue")) +
+  facet_wrap(~obese) +
+  labs(title = "Relationship between age and medical expenses",
+       subtitle = "US Census Data 2013",
+       caption = "source: https://github.com/dataspelunking/MLwR",
+       x = " Age (years)",
+       y = "Medical Expenses",
+       color = "Smoker?") +
+  theme_minimal()
+```
+
+```{r}
+# placing color mapping in the ggplot function
+ggplot(insurance,
+       aes(x = age, 
+           y = expenses,
+           color = smoker)) +
+  geom_point(alpha = .5,
+             size = 2) +
+  geom_smooth(method = "lm",
+              se = FALSE, 
+              size = 1.5)
+```
+
+```{r}
+# placing color mapping in the geom_point function
+ggplot(insurance,
+       aes(x = age, 
+           y = expenses)) +
+  geom_point(aes(color = smoker),
+             alpha = .5,
+             size = 2) +
+  geom_smooth(method = "lm",
+              se = FALSE, 
+              size = 1.5)
+```
+
+```{r}
+# create scatterplot and save it
+myplot <- ggplot(data = insurance,
+                  aes(x = age, y = expenses)) +
+             geom_point()
+
+# plot the graph
+myplot
+
+# make the points larger and blue
+# then print the graph
+myplot <- myplot + geom_point(size = 2, color = "blue")
+myplot
+
+# print the graph with a title and line of best fit
+# but don't save those changes
+myplot + geom_smooth(method = "lm") +
+  labs(title = "Mildly interesting graph")
+
+# print the graph with a black and white theme
+# but don't save those changes
+myplot + theme_bw()
+```
